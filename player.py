@@ -1,8 +1,10 @@
 import pygame
 import sys
-import map
-import bg
 
+pygame.init()
+
+altura = 800
+largura = 600
 altura_jog = 60
 largura_jog = 40
 cor_jog = (200, 30, 30)
@@ -20,6 +22,7 @@ gravidade = 1
 pulo_jog = 20    # ajusta se quiser pulo mais alto/baixo
 no_chao = True
 
+tela = pygame.display.set_mode((largura, altura))
 jogador_surf = pygame.Surface((largura_jog, altura_jog))
 jogador_surf.fill(cor_jog)
 
@@ -59,3 +62,7 @@ while True:
         x_jog = 0
     if x_jog + largura_jog > largura:
         x_jog = largura - largura_jog
+
+    tela.fill((135, 206, 235))  # fundo céu
+    tela.blit(jogador_surf, (int(x_jog), int(y_jog)))
+    pygame.display.flip()
