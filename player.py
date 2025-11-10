@@ -1,10 +1,10 @@
 import pygame
 import sys
-
+import timer
 pygame.init()
 
 altura = 800
-largura = 600
+largura = 800
 altura_jog = 60
 largura_jog = 40
 cor_jog = (200, 30, 30)
@@ -15,18 +15,22 @@ altura_chao = altura - base_chao - altura_jog  # posição y do topo do jogador 
 chao = altura_chao                                # chao agora é numérico (y do chão)
 y_jog = chao                                      # começar no chão
 
-velocidade_jog = 6
+velocidade_jog = 4
 velocidade_y_jog = 0
 
 gravidade = 1
-pulo_jog = 20    # ajusta se quiser pulo mais alto/baixo
+pulo_jog = 18
+terminal_vel = 25
 no_chao = True
 
-tela = pygame.display.set_mode((largura, altura))
+tela = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 jogador_surf = pygame.Surface((largura_jog, altura_jog))
 jogador_surf.fill(cor_jog)
 
+clock = pygame.time.Clock()
 while True:
+    dt = clock.tick(60)
+    
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
