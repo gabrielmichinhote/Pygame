@@ -143,31 +143,61 @@ def tela_jogo_temporaria():
         camera_x = max_camera
 
     # MOVIMENTO DO PLAYER
+    # -----------------------
+    # MOVIMENTO DO PLAYER (resolução por eixo para colisões sólidas)
+    # -----------------------
     teclas = pygame.key.get_pressed()
+
+    # velocidade horizontal desejada
+    vel_x = 0
     if teclas[pygame.K_LEFT] or teclas[pygame.K_a]:
-        player.x -= velocidade
+        vel_x = -velocidade
     if teclas[pygame.K_RIGHT] or teclas[pygame.K_d]:
-        player.x += velocidade
+        vel_x = velocidade
     if (teclas[pygame.K_UP] or teclas[pygame.K_w] or teclas[pygame.K_SPACE]) and no_chao:
         player_vel_y = -pulo
         no_chao = False
-        # Impede o jogador de sair do mapa (limites esquerdo e direito)
+        
+    # Aplica movimento horizontal e resolve colisões X
+    player.x += vel_x
+    for p in plataformas:
+        if player.colliderect(p):
+            if vel_x > 0:
+                # vinha da esquerda -> encostar na lateral esquerda da plataforma
+                player.right = p.left
+            elif vel_x < 0:
+                # vinha da direita -> encostar na lateral direita da plataforma
+                player.left = p.right
+
+    # Aplica gravidade (com dt fixo estilo seu código) e movimento vertical
+    player_vel_y += gravidade
+    player.y += player_vel_y
+
+    # reset do estado de chão
+    no_chao = False
+
+    # Resolve colisões verticais
+    for p in plataformas:
+        if player.colliderect(p):
+            if player_vel_y > 0:
+                # caindo -> pousou em cima da plataforma
+                player.bottom = p.top
+                player_vel_y = 0
+                no_chao = True
+            elif player_vel_y < 0:
+                # subindo -> bateu no teto da plataforma
+                player.top = p.bottom
+                player_vel_y = 0
+
+    # Impede o jogador de sair do mapa (limites X/Y)
     if player.x < 0:
         player.x = 0
     if player.right > MAP_WIDTH:
         player.right = MAP_WIDTH
-
-    # GRAVIDADE
-    player_vel_y += gravidade
-    player.y += player_vel_y
-
-    # COLISÕES COM PLATAFORMAS
-    no_chao = False
-    for p in plataformas:
-        if player.colliderect(p) and player_vel_y >= 0:
-            player.bottom = p.top
-            player_vel_y = 0
-            no_chao = True
+    if player.bottom > ALT:
+        player.bottom = ALT
+        player_vel_y = 0
+        no_chao = True
 
     # INIMIGOS (movimento e colisão)
     # cada inimigo usa a mesma inimigos_vel global (você pode trocar depois)
@@ -237,15 +267,18 @@ pulo = 18
 vidas = 3
 pontos = 0
 
-#plataformas (x, y, largura e altura)
+# plataformas (x, y, largura e altura)  — adicione/extrapole sua lista atual
 plataformas = [
-    pygame.Rect(0, ALT - 80, MAP_WIDTH, 100),  #chão
+    pygame.Rect(0, ALT - 80, MAP_WIDTH, 100),  # chão amplo
     pygame.Rect(200, ALT - 200, 200, 20),
     pygame.Rect(500, ALT - 300, 150, 20),
     pygame.Rect(800, ALT - 250, 180, 20),
-    pygame.Rect(1200, ALT - 200, 200, 20),
-    pygame.Rect(1600, ALT - 260, 180, 20),
-    pygame.Rect(2200, ALT - 220, 220, 20),
+
+    # plataformas aéreas (novas)
+    pygame.Rect(1100, ALT - 320, 160, 20),
+    pygame.Rect(1400, ALT - 380, 120, 20),
+    pygame.Rect(1750, ALT - 260, 220, 20),
+    pygame.Rect(2100, ALT - 300, 150, 20),
 ]
 
 def reset_game():
