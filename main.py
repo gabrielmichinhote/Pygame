@@ -11,7 +11,7 @@ clock = pygame.time.Clock()
 FONT_BIG = pygame.font.SysFont("arial", 64)
 FONT_MED = pygame.font.SysFont("arial", 36)
 FONT_PEQ = pygame.font.SysFont("arial", 24)
-
+MAP_WIDTH = 5000
 #CORES USADAS 
 BRANCO = (255, 255, 255)
 PRETO = (0, 0, 0)   
@@ -20,6 +20,7 @@ VERMELHO = (255, 0, 0)
 AZUL = (0, 0, 255)
 CINZA = (128, 128, 128)
 
+camera_x = 0
 
 # Começamos com fullscreen no monitor
 tela = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -106,10 +107,18 @@ def tela_regras():
     
     #AQUI (NO LUGAR DESSA TELA DE JOGO TEMPORÁRIA) VAI ENTRAR PARALLAX, LOGICA DO JOGADOR E AFINS 
 def tela_jogo_temporaria():
-    global player, player_vel_y, no_chao, vidas, pontos, vel_inimigo
+    global player, player_vel_y, no_chao, vidas, pontos, vel_inimigo, camera_x
 
     # fundo
     tela.fill((135, 206, 235))  # azul céu
+
+    # centraliza o jogador na tela; limita para não sair dos limites do mapa
+    camera_x = player.x - (LARG // 2) + (player.width // 2)
+    if camera_x < 0:
+        camera_x = 0
+    max_camera = max(0, MAP_WIDTH - LARG)
+    if camera_x > max_camera:
+        camera_x = max_camera
 
     # MOVIMENTO DO PLAYER
     teclas = pygame.key.get_pressed()
@@ -125,81 +134,63 @@ def tela_jogo_temporaria():
     player_vel_y += gravidade
     player.y += player_vel_y
 
-    # COLISÕES COM PLATAFORMAS (corrigido)
+    # COLISÕES COM PLATAFORMAS
     no_chao = False
     for p in plataformas:
-        # verifica colisão somente quando o jogador está descendo
         if player.colliderect(p) and player_vel_y >= 0:
-            # ajusta player para ficar em cima da plataforma
             player.bottom = p.top
             player_vel_y = 0
             no_chao = True
 
     # INIMIGOS (movimento e colisão)
-    # atualizamos cada inimigo independentemente, invertendo sua velocidade ao colidir
-    for idx, inimigo in enumerate(inimigos):
+    # cada inimigo usa a mesma vel_inimigo global (você pode trocar depois)
+    for idx in range(len(inimigos)-1, -1, -1):  # iterar de trás pra frente se for-remover
+        inimigo = inimigos[idx]
         inimigo.x += vel_inimigo
-        # se tocar borda da tela inverte
-        if inimigo.right > LARG or inimigo.left < 0:
+
+        # inverte ao bater nas bordas do mapa (usar MAP_WIDTH)
+        if inimigo.right > MAP_WIDTH or inimigo.left < 0:
             vel_inimigo *= -1
+            inimigo.x += vel_inimigo  # evita ficar "preso" fora do limite
 
         # colisão com o jogador
         if player.colliderect(inimigo):
-            # se o jogador estiver caindo (stomp) e a colisão vier de cima
+            # stomp (vindo de cima)
             if player_vel_y > 0 and (player.bottom - inimigo.top) < 20:
-                # "mata" inimigo (remover da lista)
-                inimigos.pop(idx)
+                inimigos.pop(idx)         # remove inimigo
                 pontos += 100
-                # rebote do jogador
                 player_vel_y = -pulo * 0.6
                 no_chao = False
             else:
-                # dano ao jogador
                 vidas -= 1
-                # reposiciona o jogador no ponto inicial
                 player.x, player.y = 100, ALT - 150
                 player_vel_y = 0
                 no_chao = False
                 if vidas <= 0:
-                    # reinicia estado de jogo (exemplo simples)
                     pygame.time.delay(800)
                     player.x, player.y = 100, ALT - 150
                     player_vel_y = 0
                     vidas = 3
                     pontos = 0
-                    # opcional: voltar ao menu
-                    # global estado
-                    # estado = 'menu'
+                    # opcional: voltar ao menu -> estado = 'menu'
 
-    # DESENHAR PLATAFORMAS
+    # ---------- Desenho com deslocamento da câmera ----------
+    # Plataformas
     for p in plataformas:
-        pygame.draw.rect(tela, (120, 90, 40), p)
+        draw_rect = (p.x - camera_x, p.y, p.width, p.height)
+        pygame.draw.rect(tela, (120, 90, 40), draw_rect)
 
-    # DESENHAR PLAYER
-    pygame.draw.rect(tela, (255, 0, 0), player)
+    # Player (desenha na posição relativa à câmera)
+    pygame.draw.rect(tela, (255, 0, 0), (player.x - camera_x, player.y, player.width, player.height))
 
-    # DESENHAR INIMIGOS
+    # Inimigos
     for inimigo in inimigos:
-        pygame.draw.rect(tela, (0, 0, 0), inimigo)
+        pygame.draw.rect(tela, (0, 0, 0), (inimigo.x - camera_x, inimigo.y, inimigo.width, inimigo.height))
 
-    # HUD (vidas e pontos)
+    # HUD (vidas e pontos) - permanece fixa na tela (não desloca com a câmera)
     texto = FONT_MED.render(f"Vidas: {vidas}   Pontos: {pontos}", True, PRETO)
     tela.blit(texto, (20, 20))
 
-    # DESENHAR PLATAFORMAS
-    for p in plataformas:
-        pygame.draw.rect(tela, (120, 90, 40), p)
-
-    # DESENHAR PLAYER
-    pygame.draw.rect(tela, (255, 0, 0), player)
-
-    # DESENHAR INIMIGOS
-    for inimigo in inimigos:
-        pygame.draw.rect(tela, (0, 0, 0), inimigo)
-
-    # HUD (vidas e pontos)
-    texto = FONT_MED.render(f"Vidas: {vidas}   Pontos: {pontos}", True, PRETO)
-    tela.blit(texto, (20, 20))
 
 # VARIÁVEIS DO JOGO (nomes corrigidos e iniciais)
 player = pygame.Rect(100, ALT - 150, 40, 60)
@@ -213,15 +204,24 @@ pontos = 0
 
 #plataformas (x, y, largura e altura)
 plataformas = [
-    pygame.Rect(0, ALT - 80, LARG, 80),  #chão
+    pygame.Rect(0, ALT - 80, MAP_WIDTH, 100),  #chão
     pygame.Rect(200, ALT - 200, 200, 20),
     pygame.Rect(500, ALT - 300, 150, 20),
     pygame.Rect(800, ALT - 250, 180, 20),
+    pygame.Rect(1200, ALT - 200, 200, 20),
+    pygame.Rect(1600, ALT - 260, 180, 20),
+    pygame.Rect(2200, ALT - 220, 220, 20),
 ]
 
 
 #inimigos
-inimigos = [pygame.Rect(600, ALT - 120, 40, 40)]
+inimigos = [
+    pygame.Rect(600, ALT - 120, 40, 40),
+    pygame.Rect(600, ALT - 120, 40, 40),
+    pygame.Rect(1300, ALT - 120, 40, 40),
+    pygame.Rect(2000, ALT - 120, 40, 40),
+]
+
 vel_inimigo = 2  # velocidade do inimigo
 
 def reset_game():
@@ -244,7 +244,7 @@ def reset_game():
 
     # plataformas (se quiser recriar/reinicializar)
     plataformas = [
-        pygame.Rect(0, ALT - 80, LARG, 80),  # chão
+        pygame.Rect(0, ALT - 80, int(MAP_WIDTH), 80),  # chão
         pygame.Rect(200, ALT - 200, 200, 20),
         pygame.Rect(500, ALT - 300, 150, 20),
         pygame.Rect(800, ALT - 250, 180, 20),
@@ -298,8 +298,6 @@ while True:
 
     pygame.display.flip()
     clock.tick(60)
-
-
 
     #Atualiza estado do jogo
     pygame.display.update()
