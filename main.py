@@ -3,6 +3,7 @@ import sys
 import random
 import math
 from pathlib import Path
+import map as map_data
 
 # TELA COM COMEÇAR, SAIR, REGRAS, ETC.
 
@@ -14,7 +15,8 @@ clock = pygame.time.Clock()
 FONT_BIG = pygame.font.SysFont("arial", 64)
 FONT_MED = pygame.font.SysFont("arial", 36)
 FONT_PEQ = pygame.font.SysFont("arial", 24)
-MAP_WIDTH = 5000
+MAP_WIDTH = map_data.COLS * map_data.TILE
+
 #CORES USADAS 
 BRANCO = (255, 255, 255)
 PRETO = (0, 0, 0)   
@@ -212,7 +214,8 @@ class Coin:
 
 #AQUI (NO LUGAR DESSA TELA DE JOGO TEMPORÁRIA) VAI ENTRAR PARALLAX, LOGICA DO JOGADOR E AFINS
 def tela_jogo_temporaria():
-    global player, player_vel_y, no_chao, vidas, pontos, inimigos_vel, camera_x
+    global player, player_vel_y, no_chao, vidas, pontos
+    global inimigos, inimigos_vel, inimigos_lim, plataformas, coins, camera_x
     
 
     # fundo
@@ -356,16 +359,6 @@ def tela_jogo_temporaria():
     for c in coins:
         c.update()
 
-    # checa coleta (use player, que é um Rect em coordenadas do mundo)
-    for c in coins:
-        if not c.collected and c.try_collect(player):
-            pontos += 1
-            # opcional: tocar som, spawn de partículas, etc.
-            # ex: coleta_sound.play()
-
-    # desenha as moedas (antes do jogador se quiser que fiquem atrás; depois se quiser na frente)
-    for c in coins:
-        c.draw(tela, camera_x)
 
 
 # VARIÁVEIS DO JOGO (nomes corrigidos e iniciais)
@@ -378,19 +371,7 @@ pulo = 18
 vidas = 3
 pontos = 0
 
-# plataformas (x, y, largura e altura)  — adicione/extrapole sua lista atual
-plataformas = [
-    pygame.Rect(0, ALT - 80, MAP_WIDTH, 100),  # chão amplo
-    pygame.Rect(200, ALT - 200, 200, 20),
-    pygame.Rect(500, ALT - 300, 150, 20),
-    pygame.Rect(800, ALT - 250, 180, 20),
-
-    # plataformas aéreas (novas)
-    pygame.Rect(1100, ALT - 320, 160, 20),
-    pygame.Rect(1400, ALT - 380, 120, 20),
-    pygame.Rect(1750, ALT - 260, 220, 20),
-    pygame.Rect(2100, ALT - 300, 150, 20),
-]
+plataformas = map_data.get_merged_collision_rects(map_data.TILE, collide_tiles=(1,2))
 
 coins = [
     Coin(300, ALT - 140, sprite_path=None, size=36),
@@ -418,12 +399,8 @@ def reset_game():
     pontos = 0
 
     # plataformas (se quiser recriar/reinicializar)
-    plataformas = [
-        pygame.Rect(0, ALT - 80, int(MAP_WIDTH), 80),  # chão
-        pygame.Rect(200, ALT - 200, 200, 20),
-        pygame.Rect(500, ALT - 300, 150, 20),
-        pygame.Rect(800, ALT - 250, 180, 20),
-    ]
+    plataformas = map_data.get_merged_collision_rects(map_data.TILE, collide_tiles=(1,2))
+
 
     # inimigos: recria lista e dados paralelos (velocidades e limites) — agora aleatórios
     inimigos = [
