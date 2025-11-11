@@ -1,5 +1,6 @@
 import pygame
 import sys
+import random
 
 # TELA COM COMEÇAR, SAIR, REGRAS, ETC.
 
@@ -104,10 +105,31 @@ def tela_regras():
     #botão de voltar
     mx, my = pygame.mouse.get_pos()
     botao(tela, btn_voltar, "Voltar", FONT_MED, PRETO, CINZA, btn_voltar.collidepoint((mx, my)))
-    
+
+# inimigos (cada inimigo tem rect, velocidade e limites de patrulha)
+# coords iniciais
+# inimigos: posições iniciais (pode ajustar)
+inimigos = [
+    pygame.Rect(600, ALT - 120, 40, 40),
+    pygame.Rect(1300, ALT - 120, 40, 40),
+    pygame.Rect(2000, ALT - 120, 40, 40),
+]
+
+# pequenas variações de posição para evitar fase exatamente igual
+for i in range(len(inimigos)):
+    inimigos[i].x += random.randint(-6, 6)  # deslocamento inicial aleatório (−6..6 px)
+
+# velocidade inicial aleatória (float) — direções e magnitudes variadas
+inimigos_vel = [random.choice([-1, 1]) * random.uniform(0.8, 2.2) for _ in inimigos]
+
+# limites de patrulha diferentes por inimigo (40..120 px de cada lado)
+inimigos_lim = [
+    (i.x - random.randint(40, 120), i.x + random.randint(40, 120)) for i in inimigos
+]
+
     #AQUI (NO LUGAR DESSA TELA DE JOGO TEMPORÁRIA) VAI ENTRAR PARALLAX, LOGICA DO JOGADOR E AFINS 
 def tela_jogo_temporaria():
-    global player, player_vel_y, no_chao, vidas, pontos, vel_inimigo, camera_x
+    global player, player_vel_y, no_chao, vidas, pontos, inimigos_vel, camera_x
 
     # fundo
     tela.fill((135, 206, 235))  # azul céu
@@ -129,6 +151,11 @@ def tela_jogo_temporaria():
     if (teclas[pygame.K_UP] or teclas[pygame.K_w] or teclas[pygame.K_SPACE]) and no_chao:
         player_vel_y = -pulo
         no_chao = False
+        # Impede o jogador de sair do mapa (limites esquerdo e direito)
+    if player.x < 0:
+        player.x = 0
+    if player.right > MAP_WIDTH:
+        player.right = MAP_WIDTH
 
     # GRAVIDADE
     player_vel_y += gravidade
@@ -143,21 +170,31 @@ def tela_jogo_temporaria():
             no_chao = True
 
     # INIMIGOS (movimento e colisão)
-    # cada inimigo usa a mesma vel_inimigo global (você pode trocar depois)
-    for idx in range(len(inimigos)-1, -1, -1):  # iterar de trás pra frente se for-remover
+    # cada inimigo usa a mesma inimigos_vel global (você pode trocar depois)
+    # INIMIGOS (movimento e colisão) — agora com limites por inimigo
+    for idx in range(len(inimigos) - 1, -1, -1):  # iterar de trás pra frente para poder remover
         inimigo = inimigos[idx]
-        inimigo.x += vel_inimigo
+        vel = inimigos_vel[idx]
+        left_limit, right_limit = inimigos_lim[idx]
 
-        # inverte ao bater nas bordas do mapa (usar MAP_WIDTH)
-        if inimigo.right > MAP_WIDTH or inimigo.left < 0:
-            vel_inimigo *= -1
-            inimigo.x += vel_inimigo  # evita ficar "preso" fora do limite
+        # move inimigo (x como float precisa ser garantido via atributo .x int; usamos + vel e depois aplicamos int quando desenhar)
+        inimigo.x += vel
+
+        # se passou dos limites, coloca no limite e inverte sinal da velocidade
+        if inimigo.x < left_limit:
+            inimigo.x = left_limit
+            inimigos_vel[idx] = -inimigos_vel[idx]
+        elif inimigo.x > right_limit:
+            inimigo.x = right_limit
+            inimigos_vel[idx] = -inimigos_vel[idx]
 
         # colisão com o jogador
         if player.colliderect(inimigo):
             # stomp (vindo de cima)
             if player_vel_y > 0 and (player.bottom - inimigo.top) < 20:
                 inimigos.pop(idx)         # remove inimigo
+                inimigos_vel.pop(idx)
+                inimigos_lim.pop(idx)
                 pontos += 100
                 player_vel_y = -pulo * 0.6
                 no_chao = False
@@ -172,9 +209,7 @@ def tela_jogo_temporaria():
                     player_vel_y = 0
                     vidas = 3
                     pontos = 0
-                    # opcional: voltar ao menu -> estado = 'menu'
 
-    # ---------- Desenho com deslocamento da câmera ----------
     # Plataformas
     for p in plataformas:
         draw_rect = (p.x - camera_x, p.y, p.width, p.height)
@@ -213,20 +248,9 @@ plataformas = [
     pygame.Rect(2200, ALT - 220, 220, 20),
 ]
 
-
-#inimigos
-inimigos = [
-    pygame.Rect(600, ALT - 120, 40, 40),
-    pygame.Rect(600, ALT - 120, 40, 40),
-    pygame.Rect(1300, ALT - 120, 40, 40),
-    pygame.Rect(2000, ALT - 120, 40, 40),
-]
-
-vel_inimigo = 2  # velocidade do inimigo
-
 def reset_game():
     global player, player_vel_y, no_chao, gravidade, velocidade, pulo, vidas, pontos
-    global plataformas, inimigos, vel_inimigo
+    global plataformas, inimigos, inimigos_vel, inimigos_lim
 
     # jogador
     player.x, player.y = 100, ALT - 150
@@ -250,9 +274,17 @@ def reset_game():
         pygame.Rect(800, ALT - 250, 180, 20),
     ]
 
-    # inimigos: recria a lista (cada entrada é um Rect)
-    inimigos = [pygame.Rect(600, ALT - 120, 40, 40)]
-    vel_inimigo = 2
+    # inimigos: recria lista e dados paralelos (velocidades e limites) — agora aleatórios
+    inimigos = [
+        pygame.Rect(600, ALT - 120, 40, 40),
+        pygame.Rect(1300, ALT - 120, 40, 40),
+        pygame.Rect(2000, ALT - 120, 40, 40),
+    ]
+    for i in range(len(inimigos)):
+        inimigos[i].x += random.randint(-6, 6)
+
+    inimigos_vel = [random.choice([-1, 1]) * random.uniform(0.8, 2.2) for _ in inimigos]
+    inimigos_lim = [(i.x - random.randint(40, 120), i.x + random.randint(40, 120)) for i in inimigos]
 
 #Loop principal do jogo
 while True:
