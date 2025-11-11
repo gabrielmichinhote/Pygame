@@ -1,6 +1,8 @@
 import pygame
 import sys
 import random
+import math
+from pathlib import Path
 
 # TELA COM COMEÇAR, SAIR, REGRAS, ETC.
 
@@ -128,8 +130,90 @@ inimigos_lim = [
 ]
 
     #AQUI (NO LUGAR DESSA TELA DE JOGO TEMPORÁRIA) VAI ENTRAR PARALLAX, LOGICA DO JOGADOR E AFINS 
+class Coin:
+    """
+    Moeda colecionável que aceita um sprite opcional.
+    - x,y: posição no mundo (centro)
+    - sprite_path: caminho da imagem (opcional)
+    - size: diâmetro em pixels para fallback / escala do sprite
+    """
+    def __init__(self, x, y, sprite_path=None, size=36):
+        self.x = float(x)
+        self.y = float(y)
+        self.base_y = float(y)
+        self.sprite_path = sprite_path
+        self.size = int(size)
+        self.collected = False
+        self.spawn_time = pygame.time.get_ticks() / 1000.0
+        self.bob_amplitude = 6.0
+        self.bob_speed = 2.5
+        self.sprite = None
+        self.rect = pygame.Rect(0, 0, self.size, self.size)
+        self._load_sprite()
+
+    def _load_sprite(self):
+        self.sprite = None
+        if not self.sprite_path:
+            # usa fallback (círculo)
+            self.rect = pygame.Rect(0, 0, self.size, self.size)
+            self.rect.center = (int(self.x), int(self.y))
+            return
+        p = Path(self.sprite_path)
+        if p.exists():
+            try:
+                surf = pygame.image.load(str(p)).convert_alpha()
+                w, h = surf.get_size()
+                scale = self.size / max(w, h)
+                self.sprite = pygame.transform.smoothscale(surf, (int(w*scale), int(h*scale)))
+                self.rect = self.sprite.get_rect(center=(int(self.x), int(self.y)))
+            except Exception as e:
+                print("Erro ao carregar sprite da moeda:", e)
+                self.sprite = None
+                self.rect = pygame.Rect(0, 0, self.size, self.size)
+                self.rect.center = (int(self.x), int(self.y))
+        else:
+            # arquivo não existe: fallback
+            self.sprite = None
+            self.rect = pygame.Rect(0, 0, self.size, self.size)
+            self.rect.center = (int(self.x), int(self.y))
+
+    def set_sprite(self, path):
+        self.sprite_path = path
+        self._load_sprite()
+
+    def update(self):
+        # bobbing automático baseado no tempo (não precisa de dt)
+        t = pygame.time.get_ticks() / 1000.0 - self.spawn_time
+        offset = math.sin(t * self.bob_speed * 2 * math.pi) * self.bob_amplitude
+        self.y = self.base_y + offset
+        # atualiza rect
+        self.rect.center = (int(self.x), int(self.y))
+
+    def draw(self, surface, camera_x):
+        if self.collected:
+            return
+        screen_x = int(self.x - camera_x)
+        screen_y = int(self.y)
+        if self.sprite:
+            r = self.sprite.get_rect(center=(screen_x, screen_y))
+            surface.blit(self.sprite, r)
+        else:
+            pygame.draw.circle(surface, (255,210,0), (screen_x, screen_y), self.size // 2)
+            pygame.draw.circle(surface, (200,160,0), (screen_x, screen_y), self.size // 2, 3)
+
+    def try_collect(self, player_rect):
+        if self.collected:
+            return False
+        # check collision in world coords: use rect (actualizado em update)
+        if self.rect.colliderect(player_rect):
+            self.collected = True
+            return True
+        return False
+
+#AQUI (NO LUGAR DESSA TELA DE JOGO TEMPORÁRIA) VAI ENTRAR PARALLAX, LOGICA DO JOGADOR E AFINS
 def tela_jogo_temporaria():
     global player, player_vel_y, no_chao, vidas, pontos, inimigos_vel, camera_x
+    
 
     # fundo
     tela.fill((135, 206, 235))  # azul céu
@@ -239,7 +323,19 @@ def tela_jogo_temporaria():
                     player_vel_y = 0
                     vidas = 3
                     pontos = 0
+    for c in coins:
+        c.update()
 
+    # Checa coleta (player é um Rect em coordenadas do MUNDO)
+    for c in coins:
+        if not c.collected and c.try_collect(player):
+            pontos += 1
+            # aqui opcional: tocar som de coleta -> coleta_sound.play()
+
+    # Desenha as moedas (aplica camera_x na draw)
+    # Se quiser que as moedas fiquem atrás do jogador, deixe este loop antes do desenho do jogador.
+    for c in coins:
+        c.draw(tela, camera_x)
     # Plataformas
     for p in plataformas:
         draw_rect = (p.x - camera_x, p.y, p.width, p.height)
@@ -255,6 +351,21 @@ def tela_jogo_temporaria():
     # HUD (vidas e pontos) - permanece fixa na tela (não desloca com a câmera)
     texto = FONT_MED.render(f"Vidas: {vidas}   Pontos: {pontos}", True, PRETO)
     tela.blit(texto, (20, 20))
+
+    # ---- moedas: atualizar, checar coleta e desenhar ----
+    for c in coins:
+        c.update()
+
+    # checa coleta (use player, que é um Rect em coordenadas do mundo)
+    for c in coins:
+        if not c.collected and c.try_collect(player):
+            pontos += 1
+            # opcional: tocar som, spawn de partículas, etc.
+            # ex: coleta_sound.play()
+
+    # desenha as moedas (antes do jogador se quiser que fiquem atrás; depois se quiser na frente)
+    for c in coins:
+        c.draw(tela, camera_x)
 
 
 # VARIÁVEIS DO JOGO (nomes corrigidos e iniciais)
@@ -279,6 +390,13 @@ plataformas = [
     pygame.Rect(1400, ALT - 380, 120, 20),
     pygame.Rect(1750, ALT - 260, 220, 20),
     pygame.Rect(2100, ALT - 300, 150, 20),
+]
+
+coins = [
+    Coin(300, ALT - 140, sprite_path=None, size=36),
+    Coin(450, ALT - 220, sprite_path=None, size=30),
+    Coin(700, ALT - 320, sprite_path="assets/coin1.png", size=42),  # troque o caminho se tiver imagem
+    Coin(1200, ALT - 240, sprite_path="assets/coin1.png", size=40),
 ]
 
 def reset_game():
@@ -319,6 +437,13 @@ def reset_game():
     inimigos_vel = [random.choice([-1, 1]) * random.uniform(0.8, 2.2) for _ in inimigos]
     inimigos_lim = [(i.x - random.randint(40, 120), i.x + random.randint(40, 120)) for i in inimigos]
 
+    coins.clear()
+    coins.extend([
+        Coin(300, ALT - 140, sprite_path=None, size=36),
+        Coin(450, ALT - 220, sprite_path=None, size=30),
+        Coin(700, ALT - 320, sprite_path="assets/coin1.png", size=42),
+        Coin(1200, ALT - 240, sprite_path="assets/coin1.png", size=40),
+    ])
 #Loop principal do jogo
 while True:
     #Trata os eventos do jogo
