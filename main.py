@@ -21,11 +21,10 @@ AZUL = (0, 0, 255)
 CINZA = (128, 128, 128)
 
 
-#Gera a tela principal do jogo
-tela = pygame.display.set_mode((0, 0), pygame.FULLSCREEN) #p abrir em tela cheia de acordo c o monitor
+# Começamos com fullscreen no monitor
+tela = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 pygame.display.set_caption("Super Sônico")
-
-LARG, ALT = tela.get_size()  #atualiza LARG e ALT p o tamanho real da tela
+LARG, ALT = tela.get_size()  # atualiza LARG e ALT p o tamanho real da tela
 
 #Estrutura inicial dos dados
 game = True
@@ -107,24 +106,109 @@ def tela_regras():
     
     #AQUI (NO LUGAR DESSA TELA DE JOGO TEMPORÁRIA) VAI ENTRAR PARALLAX, LOGICA DO JOGADOR E AFINS 
 def tela_jogo_temporaria():
-    tela.fill((90, 100, 90)) #verde grama
-    desenho_textcent(tela, "Jogo sendo executado...", FONT_BIG, PRETO, 250)
-    info = FONT_MED.render("Pressione Esc para voltar ao menu", True, PRETO)
-    tela.blit(info, info.get_rect(center=(LARG // 2, 100)))
+    global player, player_vel_y, no_chao, vidas, pontos, vel_inimigo
 
-    #representaçao do jogador
-    pygame.draw.rect(tela, (200, 30,30), (LARG // 2 - 20, ALT - 140, 40, 60))
-    #ex de plataforma
-    pygame.draw.rect(tela, (120,90,40), (0, ALT - 80, LARG, 80))
+    # fundo
+    tela.fill((135, 206, 235))  # azul céu
 
-#VARIAVEIS DO JOGO
-player = pygame.Rect(100, ALT - 150, 40, 60) 
-velopy = 0
-nochao = False
-gravidade = 1
-valocidade = 5
+    # MOVIMENTO DO PLAYER
+    teclas = pygame.key.get_pressed()
+    if teclas[pygame.K_LEFT] or teclas[pygame.K_a]:
+        player.x -= velocidade
+    if teclas[pygame.K_RIGHT] or teclas[pygame.K_d]:
+        player.x += velocidade
+    if (teclas[pygame.K_UP] or teclas[pygame.K_w] or teclas[pygame.K_SPACE]) and no_chao:
+        player_vel_y = -pulo
+        no_chao = False
+
+    # GRAVIDADE
+    player_vel_y += gravidade
+    player.y += player_vel_y
+
+    # COLISÕES COM PLATAFORMAS (corrigido)
+    no_chao = False
+    for p in plataformas:
+        # verifica colisão somente quando o jogador está descendo
+        if player.colliderect(p) and player_vel_y >= 0:
+            # ajusta player para ficar em cima da plataforma
+            player.bottom = p.top
+            player_vel_y = 0
+            no_chao = True
+
+    # INIMIGOS (movimento e colisão)
+    # atualizamos cada inimigo independentemente, invertendo sua velocidade ao colidir
+    for idx, inimigo in enumerate(inimigos):
+        inimigo.x += vel_inimigo
+        # se tocar borda da tela inverte
+        if inimigo.right > LARG or inimigo.left < 0:
+            vel_inimigo *= -1
+
+        # colisão com o jogador
+        if player.colliderect(inimigo):
+            # se o jogador estiver caindo (stomp) e a colisão vier de cima
+            if player_vel_y > 0 and (player.bottom - inimigo.top) < 20:
+                # "mata" inimigo (remover da lista)
+                inimigos.pop(idx)
+                pontos += 100
+                # rebote do jogador
+                player_vel_y = -pulo * 0.6
+                no_chao = False
+            else:
+                # dano ao jogador
+                vidas -= 1
+                # reposiciona o jogador no ponto inicial
+                player.x, player.y = 100, ALT - 150
+                player_vel_y = 0
+                no_chao = False
+                if vidas <= 0:
+                    # reinicia estado de jogo (exemplo simples)
+                    pygame.time.delay(800)
+                    player.x, player.y = 100, ALT - 150
+                    player_vel_y = 0
+                    vidas = 3
+                    pontos = 0
+                    # opcional: voltar ao menu
+                    # global estado
+                    # estado = 'menu'
+
+    # DESENHAR PLATAFORMAS
+    for p in plataformas:
+        pygame.draw.rect(tela, (120, 90, 40), p)
+
+    # DESENHAR PLAYER
+    pygame.draw.rect(tela, (255, 0, 0), player)
+
+    # DESENHAR INIMIGOS
+    for inimigo in inimigos:
+        pygame.draw.rect(tela, (0, 0, 0), inimigo)
+
+    # HUD (vidas e pontos)
+    texto = FONT_MED.render(f"Vidas: {vidas}   Pontos: {pontos}", True, PRETO)
+    tela.blit(texto, (20, 20))
+
+    # DESENHAR PLATAFORMAS
+    for p in plataformas:
+        pygame.draw.rect(tela, (120, 90, 40), p)
+
+    # DESENHAR PLAYER
+    pygame.draw.rect(tela, (255, 0, 0), player)
+
+    # DESENHAR INIMIGOS
+    for inimigo in inimigos:
+        pygame.draw.rect(tela, (0, 0, 0), inimigo)
+
+    # HUD (vidas e pontos)
+    texto = FONT_MED.render(f"Vidas: {vidas}   Pontos: {pontos}", True, PRETO)
+    tela.blit(texto, (20, 20))
+
+# VARIÁVEIS DO JOGO (nomes corrigidos e iniciais)
+player = pygame.Rect(100, ALT - 150, 40, 60)
+player_vel_y = 0
+no_chao = False
+gravidade = 1.0
+velocidade = 5  # velocidade horizontal do jogador
 pulo = 18
-vidas = 3 
+vidas = 3
 pontos = 0
 
 #plataformas (x, y, largura e altura)
@@ -135,24 +219,65 @@ plataformas = [
     pygame.Rect(800, ALT - 250, 180, 20),
 ]
 
+
 #inimigos
 inimigos = [pygame.Rect(600, ALT - 120, 40, 40)]
-veloinimigo = 2
+vel_inimigo = 2  # velocidade do inimigo
+
+def reset_game():
+    global player, player_vel_y, no_chao, gravidade, velocidade, pulo, vidas, pontos
+    global plataformas, inimigos, vel_inimigo
+
+    # jogador
+    player.x, player.y = 100, ALT - 150
+    player_vel_y = 0
+    no_chao = False
+
+    # física / movimento (mantive valores já usados)
+    gravidade = 1.0
+    velocidade = 5
+    pulo = 18
+
+    # HUD
+    vidas = 3
+    pontos = 0
+
+    # plataformas (se quiser recriar/reinicializar)
+    plataformas = [
+        pygame.Rect(0, ALT - 80, LARG, 80),  # chão
+        pygame.Rect(200, ALT - 200, 200, 20),
+        pygame.Rect(500, ALT - 300, 150, 20),
+        pygame.Rect(800, ALT - 250, 180, 20),
+    ]
+
+    # inimigos: recria a lista (cada entrada é um Rect)
+    inimigos = [pygame.Rect(600, ALT - 120, 40, 40)]
+    vel_inimigo = 2
 
 #Loop principal do jogo
 while True:
     #Trata os eventos do jogo
     for event in pygame.event.get():
-        #Verifica consequências do evento 
+    # Verifica consequências do evento
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
 
+        if event.type == pygame.KEYDOWN:
+            # ESC volta ao menu a partir do jogo
+            if estado == 'jogando' and event.key == pygame.K_ESCAPE:
+                estado = 'menu'
+            # Permitir ESC no menu para fechar (opcional)
+            elif estado == 'menu' and event.key == pygame.K_ESCAPE:
+                pygame.quit()
+                sys.exit()
+
         if estado == 'menu':
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if btn_jogar.collidepoint(event.pos):
+                    reset_game()
                     estado = 'jogando'
-                elif btn_regras.collidepoint(event.pos):  #esse event guarda a posição X e Y do mouse
+                elif btn_regras.collidepoint(event.pos):
                     estado = 'regras'
                 elif btn_sair.collidepoint(event.pos):
                     pygame.quit()
@@ -161,11 +286,6 @@ while True:
         elif estado == 'regras':
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if btn_voltar.collidepoint(event.pos):
-                    estado = 'menu'
-
-        elif estado == 'jogando':
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
                     estado = 'menu'
 
     #Desenha a tela conforme o estado atual
