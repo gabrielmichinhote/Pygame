@@ -160,6 +160,7 @@ def tela_regras():
 
 #inimigos iniciais 
 
+
 inimigos = [
     pygame.Rect(600, ALT - 332, 40, 40),
     pygame.Rect(600, ALT - 170, 40, 40),
@@ -500,28 +501,31 @@ while True:
             pygame.quit(); sys.exit()
 
         #teclas globais
-        if event.type == pygame.KEYDOWN:
-            if estado == 'jogando' and event.key == pygame.K_ESCAPE:
-                estado = 'menu'
+            if event.key == pygame.K_ESCAPE:
+                if estado == 'jogando':
+                    # volta para o menu principal
+                    estado = 'menu'
+                    try:
+                        pygame.mixer.music.stop()
+                    except Exception:
+                        pass
+                elif estado == 'menu':
+                    # sai do jogo
+                    pygame.quit(); sys.exit()
             elif estado == 'menu' and event.key == pygame.K_ESCAPE:
                 pygame.quit(); sys.exit()
-            #quando estiver na tela para digitar o nome, processamos entrada de texto
             if estado == 'nome':
                 if event.key == pygame.K_RETURN:
-                    #se não tiver digitado nada, atribui "Jogador"
                     if input_name.strip() == "":
                         input_name = "Jogador"
-                    #salva entrada e mostra ranking
                     ranking = add_ranking_entry(input_name.strip(), victory_time if victory_time is not None else 0.0)
                     estado = 'ranking'
                     input_name = ""
                 elif event.key == pygame.K_BACKSPACE:
                     input_name = input_name[:-1]
                 else:
-                    #limita tamanho do nome
                     if len(input_name) < 20 and event.unicode.isprintable():
                         input_name += event.unicode
-
             #atalho na tela de ranking: R para resetar e voltar ao menu
             if estado == 'ranking' and event.key == pygame.K_r:
                 estado = 'menu'
