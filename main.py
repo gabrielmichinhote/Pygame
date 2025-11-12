@@ -44,11 +44,19 @@ victory_time = None
 RANKING_FILE = Path("ranking.json")
 MAX_RANK = 10
 
-jump_sound = pygame.mixer.Sound("jump.wav")
-coin_sound = pygame.mixer.Sound("coin.wav")
+#sons e musica
+som_pulo = pygame.mixer.Sound("jump.wav")
+som_moeda = pygame.mixer.Sound("coin.wav")
 pygame.mixer.music.load("Musicatema.wav")
 pygame.mixer.music.set_volume(0.5)  
 pygame.mixer.music.play(-1)
+som_go = pygame.mixer.Sound("gameover.wav")
+som_go.set_volume(0.7)
+som_inimigo_morrendo = pygame.mixer.Sound("morteinimigo.wav")
+som_inimigo_morrendo.set_volume(0.7)
+som_player_morrendo = pygame.mixer.Sound("mortejogador.wav")
+som_player_morrendo.set_volume(0.7)
+som_gp = 'mario.wav'
 
 #utilitarios
 def desenho_textcent(tela, texto, fonte, cor, y):
@@ -202,7 +210,7 @@ def tela_jogo_temporaria():
     if teclas[pygame.K_RIGHT] or teclas[pygame.K_d]:
         vel_x = velocidade
     if (teclas[pygame.K_UP] or teclas[pygame.K_w] or teclas[pygame.K_SPACE]) and no_chao:
-        jump_sound.play()
+        som_pulo.play()
         player_vel_y = -pulo; no_chao = False
 
     #mov horizontal e colisões X
@@ -232,6 +240,8 @@ def tela_jogo_temporaria():
     if player.top > ALT:
         game_finished = True
         estado = 'game_over'
+        pygame.mixer.music.stop()
+        som_go.play()
 
     #mov dos inimigos e colisoes
     for idx in range(len(inimigos) - 1, -1, -1):
@@ -245,8 +255,10 @@ def tela_jogo_temporaria():
         if player.colliderect(inimigo):
             if player_vel_y > 0 and (player.bottom - inimigo.top) < 20:
                 inimigos.pop(idx); inimigos_vel.pop(idx); inimigos_lim.pop(idx)
+                som_inimigo_morrendo.play()
                 pontos += 100; player_vel_y = -pulo * 0.6; no_chao = False
             else:
+                som_player_morrendo.play()
                 vidas -= 1
                 player.x, player.y = 100, ALT - 200
                 player_vel_y = 0
@@ -255,13 +267,15 @@ def tela_jogo_temporaria():
                     pygame.time.delay(500)
                     game_finished = True
                     estado = 'game_over'
+                    pygame.mixer.music.stop()
+                    som_go.play()
 
     #att moedinhas coletadas 
     for c in coins: c.update()
     for c in coins:
         if not c.collected and c.try_collect(player):
-            coin_sound.play()
-            pontos += 1
+            som_moeda.play()
+            pontos += 50
 
     #desenha moedinhas
     for c in coins: c.draw(tela, camera_x)
@@ -454,6 +468,8 @@ while True:
                     pygame.mixer.music.stop()
                     reset_game()
                     estado = 'jogando'
+                    pygame.mixer.music.load(som_gp)
+                    pygame.mixer.music.play(-1)
                 elif btn_regras.collidepoint(event.pos):
                     estado = 'regras'
                 elif btn_sair.collidepoint(event.pos):
@@ -466,6 +482,9 @@ while True:
             if btn_restart.collidepoint(event.pos):
                 reset_game()
                 estado = 'jogando'
+                pygame.mixer.music.load(som_gp)
+                pygame.mixer.music.set_volume(0.3)
+                pygame.mixer.music.play(-1)
             elif btn_to_menu.collidepoint(event.pos):
                 estado = 'menu'
         
