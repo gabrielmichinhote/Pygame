@@ -2,6 +2,11 @@
 
 **Inspirado em uma junção de clássicos como "Super Mário Bros", "Sônic" e "Halo", contendo referências a jogos mais contemporâneos também como "Roblox". É um jogo 2D de plataformas cujo objetivo é matar inimigos, coletar moedas e, acima de tudo, chegar ao final no menor tempo possível.**
 
+
+**VÍDEO COM GAMEPLAY (MOSTRA A FUNCIONALIDADE DO JOGO)**
+* https://youtu.be/eaV37mB3FrI
+
+
 **Nos baseamos principalmente em vídeos no YouTube (https://www.youtube.com/watch?v=nCk4zEL15dM) e precisamos também de algumas instruções de IA (o que seriam "tuplas" e como usá-las, além de pedir instruções de como agregar sons ao jogo, não só isso, como também o modo correto de utilizar "Houver").** 
 
 **O jogo precisa dos seguintes arquivos no mesmo diretório:**
