@@ -32,6 +32,7 @@ camera_x = 0
 #start em fullscreen
 tela = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 pygame.display.set_caption("Super Sônico")
+map_data.load_tiles()
 LARG, ALT = tela.get_size()  #ajusta o tamanho de acordo c o monitor
 
 #estado do jogo
@@ -195,7 +196,7 @@ def tela_jogo_temporaria():
     if teclas[pygame.K_RIGHT] or teclas[pygame.K_d]:
         vel_x = velocidade
     if (teclas[pygame.K_UP] or teclas[pygame.K_w] or teclas[pygame.K_SPACE]) and no_chao:
-        pygame.mixer.Sound.play(jump_sound)
+        #pygame.mixer.Sound.play(jump_sound)
         player_vel_y = -pulo; no_chao = False
 
     #mov horizontal e colisões X
@@ -253,7 +254,7 @@ def tela_jogo_temporaria():
     for c in coins: c.update()
     for c in coins:
         if not c.collected and c.try_collect(player):
-            pygame.mixer.Sound.play(coin_sound)
+            #pygame.mixer.Sound.play(coin_sound)
             pontos += 1
 
     #desenha moedinhas
