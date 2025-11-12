@@ -7,7 +7,7 @@
 * https://youtu.be/eaV37mB3FrI
 
 
-**Nos baseamos principalmente em vídeos no YouTube (https://www.youtube.com/watch?v=nCk4zEL15dM) e precisamos também de algumas instruções de IA (o que seriam "tuplas" e como usá-las, além de pedir instruções de como agregar sons ao jogo, não só isso, como também o modo correto de utilizar "Houver").** 
+**Nos baseamos principalmente em vídeos no YouTube (https://www.youtube.com/watch?v=nCk4zEL15dM) e precisamos também de algumas instruções de IA (o que seriam "tuplas" e como usá-las, além de pedir instruções de como agregar sons ao jogo, não só isso, como também o modo correto de utilizar "Houver". Ademais, a utilizamos para indicar onde estavam pequenos erros para que pudéssemos os corrigir -ex: na criação das vidas).** 
 
 **O jogo precisa dos seguintes arquivos no mesmo diretório:**
 
