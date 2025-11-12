@@ -240,11 +240,9 @@ def tela_jogo_temporaria():
                 player_vel_y = 0
                 no_chao = False
                 if vidas <= 0:
-                    pygame.time.delay(800)
-                    player.x, player.y = 100, ALT - 200
-                    player_vel_y = 0
-                    vidas = 3
-                    pontos = 0
+                    pygame.time.delay(500)
+                    game_finished = True
+                    estado = 'game_over'
 
     #att moedinhas coletadas 
     for c in coins: c.update()
