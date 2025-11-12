@@ -27,7 +27,8 @@ AZUL = (0, 0, 255)
 CINZA = (128, 128, 128)
 
 camera_x = 0
-
+jump_sound = pygame.mixer.Sound("Pygame/supersonico/jump.wav")
+coin_sound = pygame.mixer.Sound("Pygame/supersonico/26f8b9_sonic_sound_effect.wav")
 #start em fullscreen
 tela = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 pygame.display.set_caption("Super Sônico")
@@ -175,7 +176,7 @@ class Coin:
 def tela_jogo_temporaria():
     global player, player_vel_y, no_chao, vidas, pontos
     global inimigos, inimigos_vel, inimigos_lim, plataformas, coins, camera_x
-    global estado, game_finished, game_start_time, victory_time
+    global estado, game_finished, game_start_time, victory_time, coins, inimigo, inimigos_lim, inimigos_vel
 
     # desenha mapa
     map_data.draw_level(tela, map_data.LEVEL, (camera_x, 0))
@@ -194,6 +195,7 @@ def tela_jogo_temporaria():
     if teclas[pygame.K_RIGHT] or teclas[pygame.K_d]:
         vel_x = velocidade
     if (teclas[pygame.K_UP] or teclas[pygame.K_w] or teclas[pygame.K_SPACE]) and no_chao:
+        pygame.mixer.Sound.play(jump_sound)
         player_vel_y = -pulo; no_chao = False
 
     #mov horizontal e colisões X
@@ -251,6 +253,7 @@ def tela_jogo_temporaria():
     for c in coins: c.update()
     for c in coins:
         if not c.collected and c.try_collect(player):
+            pygame.mixer.Sound.play(coin_sound)
             pontos += 1
 
     #desenha moedinhas
@@ -279,7 +282,7 @@ def tela_jogo_temporaria():
         estado = 'nome'
 
 #VARIAVEIS DO JOGO
-player = pygame.Rect(100, ALT - 150, 40, 60)
+player = pygame.Rect(100, ALT - 150, 30, 45)
 player_vel_y = 0
 no_chao = False
 gravidade = 1.0
