@@ -34,6 +34,13 @@ tela = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 pygame.display.set_caption("Super Sônico")
 map_data.load_tiles()
 LARG, ALT = tela.get_size()  #ajusta o tamanho de acordo c o monitor
+BG_MENU_PATH = "sonic_fundo.png"
+
+try:
+    bg_img = pygame.image.load(BG_MENU_PATH).convert()
+    bg_img = pygame.transform.smoothscale(bg_img, (LARG, ALT))
+except Exception as e:
+    bg_img = None
 
 PLAYER_PAD = "sonic_parado_d.png"
 PLAYER_PAE = "sonic_parado_e.png"
@@ -131,7 +138,10 @@ regras_t = ["Regras do Super Sônico:",
             "Divirta-se jogando!"]
 
 def tela_menu():
-    tela.fill((135, 206, 235))
+    if bg_img:
+        tela.blit(bg_img, (0, 0))
+    else:
+        tela.fill((135, 206, 235))
     desenho_textcent(tela, "SUPER SONICO", FONT_TITULO, PRETO, 130)
     mx, my = pygame.mouse.get_pos()
     botao(tela, btn_jogar, "Jogar", FONT_GO_MENOR, PRETO, VERDE, btn_jogar.collidepoint((mx, my)))
