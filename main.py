@@ -212,16 +212,16 @@ class Coin:
             return True
         return False
 
-#AQUI (NO LUGAR DESSA TELA DE JOGO TEMPORÁRIA) VAI ENTRAR PARALLAX, LOGICA DO JOGADOR E AFINS
+
 def tela_jogo_temporaria():
     global player, player_vel_y, no_chao, vidas, pontos
     global inimigos, inimigos_vel, inimigos_lim, plataformas, coins, camera_x
     
 
     # fundo
-    tela.fill((135, 206, 235))  # azul céu
+    map_data.draw_level(tela, map_data.LEVEL, (camera_x, 0))
 
-    # centraliza o jogador na tela; limita para não sair dos limites do mapa
+    # CÁMERA (centraliza no jogador)
     camera_x = player.x - (LARG // 2) + (player.width // 2)
     if camera_x < 0:
         camera_x = 0
@@ -229,13 +229,10 @@ def tela_jogo_temporaria():
     if camera_x > max_camera:
         camera_x = max_camera
 
-    # MOVIMENTO DO PLAYER
-    # -----------------------
-    # MOVIMENTO DO PLAYER (resolução por eixo para colisões sólidas)
-    # -----------------------
+    # MOVIMENTO DO JOGADOR
     teclas = pygame.key.get_pressed()
 
-    # velocidade horizontal desejada
+    # Movimento horizontal
     vel_x = 0
     if teclas[pygame.K_LEFT] or teclas[pygame.K_a]:
         vel_x = -velocidade
@@ -250,13 +247,11 @@ def tela_jogo_temporaria():
     for p in plataformas:
         if player.colliderect(p):
             if vel_x > 0:
-                # vinha da esquerda -> encostar na lateral esquerda da plataforma
                 player.right = p.left
             elif vel_x < 0:
-                # vinha da direita -> encostar na lateral direita da plataforma
                 player.left = p.right
 
-    # Aplica gravidade (com dt fixo estilo seu código) e movimento vertical
+    # Aplica gravidade e movimento vertical
     player_vel_y += gravidade
     player.y += player_vel_y
 
@@ -267,16 +262,14 @@ def tela_jogo_temporaria():
     for p in plataformas:
         if player.colliderect(p):
             if player_vel_y > 0:
-                # caindo -> pousou em cima da plataforma
                 player.bottom = p.top
                 player_vel_y = 0
                 no_chao = True
             elif player_vel_y < 0:
-                # subindo -> bateu no teto da plataforma
                 player.top = p.bottom
                 player_vel_y = 0
 
-    # Impede o jogador de sair do mapa (limites X/Y)
+    # Limites da tela / mapa
     if player.x < 0:
         player.x = 0
     if player.right > MAP_WIDTH:
@@ -286,18 +279,16 @@ def tela_jogo_temporaria():
         player_vel_y = 0
         no_chao = True
 
-    # INIMIGOS (movimento e colisão)
-    # cada inimigo usa a mesma inimigos_vel global (você pode trocar depois)
-    # INIMIGOS (movimento e colisão) — agora com limites por inimigo
-    for idx in range(len(inimigos) - 1, -1, -1):  # iterar de trás pra frente para poder remover
+    # MOVIMENTO DOS INIMIGOS E CHECAGEM DE COLISÕES
+    for idx in range(len(inimigos) - 1, -1, -1):  
         inimigo = inimigos[idx]
         vel = inimigos_vel[idx]
         left_limit, right_limit = inimigos_lim[idx]
 
-        # move inimigo (x como float precisa ser garantido via atributo .x int; usamos + vel e depois aplicamos int quando desenhar)
+        # move inimigo
         inimigo.x += vel
 
-        # se passou dos limites, coloca no limite e inverte sinal da velocidade
+        # checa limites de patrulha
         if inimigo.x < left_limit:
             inimigo.x = left_limit
             inimigos_vel[idx] = -inimigos_vel[idx]
@@ -305,9 +296,8 @@ def tela_jogo_temporaria():
             inimigo.x = right_limit
             inimigos_vel[idx] = -inimigos_vel[idx]
 
-        # colisão com o jogador
+        # checa colisão com o player
         if player.colliderect(inimigo):
-            # stomp (vindo de cima)
             if player_vel_y > 0 and (player.bottom - inimigo.top) < 20:
                 inimigos.pop(idx)         # remove inimigo
                 inimigos_vel.pop(idx)
@@ -329,33 +319,26 @@ def tela_jogo_temporaria():
     for c in coins:
         c.update()
 
-    # Checa coleta (player é um Rect em coordenadas do MUNDO)
+    # COLETA DE MOEDAS
     for c in coins:
         if not c.collected and c.try_collect(player):
             pontos += 1
-            # aqui opcional: tocar som de coleta -> coleta_sound.play()
 
-    # Desenha as moedas (aplica camera_x na draw)
-    # Se quiser que as moedas fiquem atrás do jogador, deixe este loop antes do desenho do jogador.
+    # DESENHO
     for c in coins:
         c.draw(tela, camera_x)
-    # Plataformas
-    for p in plataformas:
-        draw_rect = (p.x - camera_x, p.y, p.width, p.height)
-        pygame.draw.rect(tela, (120, 90, 40), draw_rect)
 
-    # Player (desenha na posição relativa à câmera)
+    # Player (representado por um retângulo vermelho)
     pygame.draw.rect(tela, (255, 0, 0), (player.x - camera_x, player.y, player.width, player.height))
 
     # Inimigos
     for inimigo in inimigos:
         pygame.draw.rect(tela, (0, 0, 0), (inimigo.x - camera_x, inimigo.y, inimigo.width, inimigo.height))
 
-    # HUD (vidas e pontos) - permanece fixa na tela (não desloca com a câmera)
+    # HUD
     texto = FONT_MED.render(f"Vidas: {vidas}   Pontos: {pontos}", True, PRETO)
     tela.blit(texto, (20, 20))
 
-    # ---- moedas: atualizar, checar coleta e desenhar ----
     for c in coins:
         c.update()
 
@@ -376,7 +359,7 @@ plataformas = map_data.get_merged_collision_rects(map_data.TILE, collide_tiles=(
 coins = [
     Coin(300, ALT - 140, sprite_path=None, size=36),
     Coin(450, ALT - 220, sprite_path=None, size=30),
-    Coin(700, ALT - 320, sprite_path="assets/coin1.png", size=42),  # troque o caminho se tiver imagem
+    Coin(700, ALT - 320, sprite_path="assets/coin1.png", size=42),  
     Coin(1200, ALT - 240, sprite_path="assets/coin1.png", size=40),
 ]
 
@@ -389,7 +372,7 @@ def reset_game():
     player_vel_y = 0
     no_chao = False
 
-    # física / movimento (mantive valores já usados)
+    # física
     gravidade = 1.0
     velocidade = 5
     pulo = 18
@@ -398,11 +381,10 @@ def reset_game():
     vidas = 3
     pontos = 0
 
-    # plataformas (se quiser recriar/reinicializar)
+    # plataformas
     plataformas = map_data.get_merged_collision_rects(map_data.TILE, collide_tiles=(1,2))
 
-
-    # inimigos: recria lista e dados paralelos (velocidades e limites) — agora aleatórios
+    # inimigos (recria com variações aleatórias)
     inimigos = [
         pygame.Rect(600, ALT - 120, 40, 40),
         pygame.Rect(1300, ALT - 120, 40, 40),
