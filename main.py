@@ -2,24 +2,22 @@ import pygame
 import sys
 import random
 import math
+import json
 from pathlib import Path
 import map as map_data
 
-# TELA COM COMEÇAR, SAIR, REGRAS, ETC.
-
-#Inicializa o pygame
+#inicializacao do jogo
 pygame.init()
 LARG, ALT = 800, 600
-
 clock = pygame.time.Clock()
 FONT_BIG = pygame.font.SysFont("arial", 64)
 FONT_MED = pygame.font.SysFont("arial", 36)
 FONT_PEQ = pygame.font.SysFont("arial", 24)
 MAP_WIDTH = map_data.COLS * map_data.TILE
 
-#CORES USADAS 
+#cores
 BRANCO = (255, 255, 255)
-PRETO = (0, 0, 0)   
+PRETO = (0, 0, 0)
 VERDE = (0, 255, 0)
 VERMELHO = (255, 0, 0)
 AZUL = (0, 0, 255)
@@ -27,26 +25,28 @@ CINZA = (128, 128, 128)
 
 camera_x = 0
 
-# Começamos com fullscreen no monitor
+#start em fullscreen
 tela = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 pygame.display.set_caption("Super Sônico")
-LARG, ALT = tela.get_size()  # atualiza LARG e ALT p o tamanho real da tela
+LARG, ALT = tela.get_size()  #ajusta o tamanho de acordo c o monitor
 
-#Estrutura inicial dos dados
-game = True
+#estado do jogo
+estado = 'menu'  #'menu','regras','jogando','nome','ranking'
+game_finished = False
+game_start_time = None
+victory_time = None
 
-# Pode ser 'menu', 'jogando', 'regras', 'sair'
-estado = 'menu'  
+RANKING_FILE = Path("ranking.json")
+MAX_RANK = 10
 
-# SURF (surface) refere-se a tela
+#utilitarios
 def desenho_textcent(tela, texto, fonte, cor, y):
     surf = fonte.render(texto, True, cor)
     rect = surf.get_rect(center=(LARG // 2, y))
-    tela.blit(surf, rect) #desenha o blit usando o rect como referencia p posição
+    tela.blit(surf, rect)
     return rect
 
-# Função para criar botões
-def botao(tela, rect, texto, fonte, cor_t, cor_f, houver = False):
+def botao(tela, rect, texto, fonte, cor_t, cor_f, houver=False):
     nova_cor = []
     for c in cor_f:
         if houver:
@@ -57,28 +57,23 @@ def botao(tela, rect, texto, fonte, cor_t, cor_f, houver = False):
         if valor > 225:
             valor = 225
         nova_cor.append(valor)
-    cor_display = tuple(nova_cor) #pesquisei sobre tuplas
-
+    cor_display = tuple(nova_cor)
     pygame.draw.rect(tela, cor_display, rect, border_radius=8)
     pygame.draw.rect(tela, PRETO, rect, 3, border_radius=8)
     surf = fonte.render(texto, True, cor_t)
     r = surf.get_rect(center=rect.center)
     tela.blit(surf, r)
 
-#TAMANHO DOS BOTÕES
+#botoes do menu
 btn_larg, btn_alt = 300, 65
-btn_x = (LARG - btn_larg) // 2 #p centralizar horizontalmente
+btn_x = (LARG - btn_larg) // 2
 btn_gap = 20
-
-#RETANGULOS DOS BOTOES D MENU
 btn_jogar = pygame.Rect(btn_x, 200, btn_larg, btn_alt)
 btn_regras = pygame.Rect(btn_x, 200 + btn_alt + btn_gap, btn_larg, btn_alt)
 btn_sair = pygame.Rect(btn_x, 200 + 2 * (btn_alt + btn_gap), btn_larg, btn_alt)
-
-#RECT DOS BOTOES DAS REGRAS
 btn_voltar = pygame.Rect(30, ALT - 80, 140, 50)
 
-#REGRAS DO JOGO (parecida com as de Mario ????? sla)
+#menu e regrinhas 
 regras_t = ["Regras do Super Sônico:",
             "1. Use as setas do teclado para mover o personagem.",
             "2. Colete itens para ganhar pontos.",
@@ -88,268 +83,188 @@ regras_t = ["Regras do Super Sônico:",
             "Divirta-se jogando!"]
 
 def tela_menu():
-    tela.fill((135, 206, 235))  # Fundo cor céu
+    tela.fill((135, 206, 235))
     desenho_textcent(tela, "Super Sônico", FONT_BIG, PRETO, 100)
     mx, my = pygame.mouse.get_pos()
-    #desenhat os botoes com o houver caso o mouse passe por cima
     botao(tela, btn_jogar, "Jogar", FONT_MED, PRETO, VERDE, btn_jogar.collidepoint((mx, my)))
     botao(tela, btn_regras, "Regras", FONT_MED, PRETO, AZUL, btn_regras.collidepoint((mx, my)))
     botao(tela, btn_sair, "Sair", FONT_MED, PRETO, VERMELHO, btn_sair.collidepoint((mx, my)))
 
 def tela_regras():
-    tela.fill((240,240,240)) #cinca claro
+    tela.fill((240,240,240))
     desenho_textcent(tela,"Regras", FONT_BIG, PRETO, 60)
-
-    #bloco de texto das regras
     start_y = 140
     for i, linha in enumerate(regras_t):
         surf = FONT_PEQ.render(linha, True, PRETO)
         tela.blit(surf, (60, start_y + i * 30))
-
-    #botão de voltar
     mx, my = pygame.mouse.get_pos()
     botao(tela, btn_voltar, "Voltar", FONT_MED, PRETO, CINZA, btn_voltar.collidepoint((mx, my)))
 
-# inimigos (cada inimigo tem rect, velocidade e limites de patrulha)
-# coords iniciais
-# inimigos: posições iniciais (pode ajustar)
+#inimigos iniciais 
 inimigos = [
     pygame.Rect(600, ALT - 120, 40, 40),
     pygame.Rect(1300, ALT - 120, 40, 40),
     pygame.Rect(2000, ALT - 120, 40, 40),
 ]
-
-# pequenas variações de posição para evitar fase exatamente igual
 for i in range(len(inimigos)):
-    inimigos[i].x += random.randint(-6, 6)  # deslocamento inicial aleatório (−6..6 px)
-
-# velocidade inicial aleatória (float) — direções e magnitudes variadas
+    inimigos[i].x += random.randint(-6, 6)
 inimigos_vel = [random.choice([-1, 1]) * random.uniform(0.8, 2.2) for _ in inimigos]
+inimigos_lim = [(i.x - random.randint(40, 120), i.x + random.randint(40, 120)) for i in inimigos]
 
-# limites de patrulha diferentes por inimigo (40..120 px de cada lado)
-inimigos_lim = [
-    (i.x - random.randint(40, 120), i.x + random.randint(40, 120)) for i in inimigos
-]
-
-    #AQUI (NO LUGAR DESSA TELA DE JOGO TEMPORÁRIA) VAI ENTRAR PARALLAX, LOGICA DO JOGADOR E AFINS 
+#coin class (ref de vídeo do YouTube)
 class Coin:
-    """
-    Moeda colecionável que aceita um sprite opcional.
-    - x,y: posição no mundo (centro)
-    - sprite_path: caminho da imagem (opcional)
-    - size: diâmetro em pixels para fallback / escala do sprite
-    """
     def __init__(self, x, y, sprite_path=None, size=36):
-        self.x = float(x)
-        self.y = float(y)
-        self.base_y = float(y)
-        self.sprite_path = sprite_path
-        self.size = int(size)
-        self.collected = False
+        self.x = float(x); self.y = float(y); self.base_y = float(y)
+        self.sprite_path = sprite_path; self.size = int(size); self.collected = False
         self.spawn_time = pygame.time.get_ticks() / 1000.0
-        self.bob_amplitude = 6.0
-        self.bob_speed = 2.5
-        self.sprite = None
+        self.bob_amplitude = 6.0; self.bob_speed = 2.5; self.sprite = None
         self.rect = pygame.Rect(0, 0, self.size, self.size)
         self._load_sprite()
-
     def _load_sprite(self):
         self.sprite = None
         if not self.sprite_path:
-            # usa fallback (círculo)
             self.rect = pygame.Rect(0, 0, self.size, self.size)
-            self.rect.center = (int(self.x), int(self.y))
-            return
+            self.rect.center = (int(self.x), int(self.y)); return
         p = Path(self.sprite_path)
         if p.exists():
             try:
                 surf = pygame.image.load(str(p)).convert_alpha()
-                w, h = surf.get_size()
-                scale = self.size / max(w, h)
+                w, h = surf.get_size(); scale = self.size / max(w, h)
                 self.sprite = pygame.transform.smoothscale(surf, (int(w*scale), int(h*scale)))
                 self.rect = self.sprite.get_rect(center=(int(self.x), int(self.y)))
             except Exception as e:
                 print("Erro ao carregar sprite da moeda:", e)
                 self.sprite = None
-                self.rect = pygame.Rect(0, 0, self.size, self.size)
-                self.rect.center = (int(self.x), int(self.y))
+                self.rect = pygame.Rect(0, 0, self.size, self.size); self.rect.center = (int(self.x), int(self.y))
         else:
-            # arquivo não existe: fallback
-            self.sprite = None
-            self.rect = pygame.Rect(0, 0, self.size, self.size)
-            self.rect.center = (int(self.x), int(self.y))
-
+            self.sprite = None; self.rect = pygame.Rect(0, 0, self.size, self.size); self.rect.center = (int(self.x), int(self.y))
     def set_sprite(self, path):
-        self.sprite_path = path
-        self._load_sprite()
-
+        self.sprite_path = path; self._load_sprite()
     def update(self):
-        # bobbing automático baseado no tempo (não precisa de dt)
         t = pygame.time.get_ticks() / 1000.0 - self.spawn_time
         offset = math.sin(t * self.bob_speed * 2 * math.pi) * self.bob_amplitude
-        self.y = self.base_y + offset
-        # atualiza rect
-        self.rect.center = (int(self.x), int(self.y))
-
+        self.y = self.base_y + offset; self.rect.center = (int(self.x), int(self.y))
     def draw(self, surface, camera_x):
-        if self.collected:
-            return
-        screen_x = int(self.x - camera_x)
-        screen_y = int(self.y)
+        if self.collected: return
+        screen_x = int(self.x - camera_x); screen_y = int(self.y)
         if self.sprite:
-            r = self.sprite.get_rect(center=(screen_x, screen_y))
-            surface.blit(self.sprite, r)
+            r = self.sprite.get_rect(center=(screen_x, screen_y)); surface.blit(self.sprite, r)
         else:
             pygame.draw.circle(surface, (255,210,0), (screen_x, screen_y), self.size // 2)
             pygame.draw.circle(surface, (200,160,0), (screen_x, screen_y), self.size // 2, 3)
-
     def try_collect(self, player_rect):
-        if self.collected:
-            return False
-        # check collision in world coords: use rect (actualizado em update)
+        if self.collected: return False
         if self.rect.colliderect(player_rect):
-            self.collected = True
-            return True
+            self.collected = True; return True
         return False
 
-
+#logica princpal do jogo (já nao é mais a temporária, apesar do nome)
 def tela_jogo_temporaria():
     global player, player_vel_y, no_chao, vidas, pontos
     global inimigos, inimigos_vel, inimigos_lim, plataformas, coins, camera_x
-    
+    global estado, game_finished, game_start_time, victory_time
 
-    # fundo
+    # desenha mapa
     map_data.draw_level(tela, map_data.LEVEL, (camera_x, 0))
 
-    # CÁMERA (centraliza no jogador)
+    #centralizacao da cam no player
     camera_x = player.x - (LARG // 2) + (player.width // 2)
-    if camera_x < 0:
-        camera_x = 0
+    if camera_x < 0: camera_x = 0
     max_camera = max(0, MAP_WIDTH - LARG)
-    if camera_x > max_camera:
-        camera_x = max_camera
+    if camera_x > max_camera: camera_x = max_camera
 
-    # MOVIMENTO DO JOGADOR
+    #movimentaçao
     teclas = pygame.key.get_pressed()
-
-    # Movimento horizontal
     vel_x = 0
     if teclas[pygame.K_LEFT] or teclas[pygame.K_a]:
         vel_x = -velocidade
     if teclas[pygame.K_RIGHT] or teclas[pygame.K_d]:
         vel_x = velocidade
     if (teclas[pygame.K_UP] or teclas[pygame.K_w] or teclas[pygame.K_SPACE]) and no_chao:
-        player_vel_y = -pulo
-        no_chao = False
-        
-    # Aplica movimento horizontal e resolve colisões X
+        player_vel_y = -pulo; no_chao = False
+
+    #mov horizontal e colisões X
     player.x += vel_x
     for p in plataformas:
         if player.colliderect(p):
-            if vel_x > 0:
-                player.right = p.left
-            elif vel_x < 0:
-                player.left = p.right
+            if vel_x > 0: player.right = p.left
+            elif vel_x < 0: player.left = p.right
 
-    # Aplica gravidade e movimento vertical
+    #fis do mov vertical e colisoes Y
     player_vel_y += gravidade
     player.y += player_vel_y
-
-    # reset do estado de chão
     no_chao = False
-
-    # Resolve colisões verticais
     for p in plataformas:
         if player.colliderect(p):
             if player_vel_y > 0:
-                player.bottom = p.top
-                player_vel_y = 0
-                no_chao = True
+                player.bottom = p.top; player_vel_y = 0; no_chao = True
             elif player_vel_y < 0:
-                player.top = p.bottom
-                player_vel_y = 0
+                player.top = p.bottom; player_vel_y = 0
 
-    # Limites da tela / mapa
-    if player.x < 0:
-        player.x = 0
-    if player.right > MAP_WIDTH:
-        player.right = MAP_WIDTH
+    #limites 
+    if player.x < 0: player.x = 0
+    if player.right > MAP_WIDTH: player.right = MAP_WIDTH
     if player.bottom > ALT:
-        player.bottom = ALT
-        player_vel_y = 0
-        no_chao = True
+        player.bottom = ALT; player_vel_y = 0; no_chao = True
 
-    # MOVIMENTO DOS INIMIGOS E CHECAGEM DE COLISÕES
-    for idx in range(len(inimigos) - 1, -1, -1):  
-        inimigo = inimigos[idx]
-        vel = inimigos_vel[idx]
-        left_limit, right_limit = inimigos_lim[idx]
-
-        # move inimigo
+    #mov dos inimigos e colisoes
+    for idx in range(len(inimigos) - 1, -1, -1):
+        inimigo = inimigos[idx]; vel = inimigos_vel[idx]; left_limit, right_limit = inimigos_lim[idx]
         inimigo.x += vel
-
-        # checa limites de patrulha
         if inimigo.x < left_limit:
-            inimigo.x = left_limit
-            inimigos_vel[idx] = -inimigos_vel[idx]
+            inimigo.x = left_limit; inimigos_vel[idx] = -inimigos_vel[idx]
         elif inimigo.x > right_limit:
-            inimigo.x = right_limit
-            inimigos_vel[idx] = -inimigos_vel[idx]
+            inimigo.x = right_limit; inimigos_vel[idx] = -inimigos_vel[idx]
 
-        # checa colisão com o player
         if player.colliderect(inimigo):
             if player_vel_y > 0 and (player.bottom - inimigo.top) < 20:
-                inimigos.pop(idx)         # remove inimigo
-                inimigos_vel.pop(idx)
-                inimigos_lim.pop(idx)
-                pontos += 100
-                player_vel_y = -pulo * 0.6
-                no_chao = False
+                inimigos.pop(idx); inimigos_vel.pop(idx); inimigos_lim.pop(idx)
+                pontos += 100; player_vel_y = -pulo * 0.6; no_chao = False
             else:
                 vidas -= 1
-                player.x, player.y = 100, ALT - 150
-                player_vel_y = 0
-                no_chao = False
+                player.x, player.y = 100, ALT - 150; player_vel_y = 0; no_chao = False
                 if vidas <= 0:
                     pygame.time.delay(800)
-                    player.x, player.y = 100, ALT - 150
-                    player_vel_y = 0
-                    vidas = 3
-                    pontos = 0
-    for c in coins:
-        c.update()
+                    player.x, player.y = 100, ALT - 150; player_vel_y = 0
+                    vidas = 3; pontos = 0
 
-    # COLETA DE MOEDAS
+    #att moedinhas coletadas 
+    for c in coins: c.update()
     for c in coins:
         if not c.collected and c.try_collect(player):
             pontos += 1
 
-    # DESENHO
-    for c in coins:
-        c.draw(tela, camera_x)
+    #desenha moedinhas
+    for c in coins: c.draw(tela, camera_x)
 
-    # Player (representado por um retângulo vermelho)
+    #desenha player e inimigos
     pygame.draw.rect(tela, (255, 0, 0), (player.x - camera_x, player.y, player.width, player.height))
-
-    # Inimigos
     for inimigo in inimigos:
         pygame.draw.rect(tela, (0, 0, 0), (inimigo.x - camera_x, inimigo.y, inimigo.width, inimigo.height))
 
-    # HUD
+    #HUD com vidas e pontos
     texto = FONT_MED.render(f"Vidas: {vidas}   Pontos: {pontos}", True, PRETO)
     tela.blit(texto, (20, 20))
 
-    for c in coins:
-        c.update()
+    #CHECAGEM DE VITORIA
+    if not game_finished and player.right >= MAP_WIDTH - 5:
+        #grava a vitoria
+        game_finished = True
+        now = pygame.time.get_ticks()
+        if game_start_time is None:
+            elapsed_ms = 0
+        else:
+            elapsed_ms = now - game_start_time
+        victory_time = round(elapsed_ms / 1000.0, 3)  #segundos com 3 casas
+        #passa a estado de input de nome
+        estado = 'nome'
 
-
-
-# VARIÁVEIS DO JOGO (nomes corrigidos e iniciais)
+#VARIAVEIS DO JOGO
 player = pygame.Rect(100, ALT - 150, 40, 60)
 player_vel_y = 0
 no_chao = False
 gravidade = 1.0
-velocidade = 5  # velocidade horizontal do jogador
+velocidade = 5
 pulo = 18
 vidas = 3
 pontos = 0
@@ -359,42 +274,34 @@ plataformas = map_data.get_merged_collision_rects(map_data.TILE, collide_tiles=(
 coins = [
     Coin(300, ALT - 140, sprite_path=None, size=36),
     Coin(450, ALT - 220, sprite_path=None, size=30),
-    Coin(700, ALT - 320, sprite_path="assets/coin1.png", size=42),  
+    Coin(700, ALT - 320, sprite_path="assets/coin1.png", size=42),
     Coin(1200, ALT - 240, sprite_path="assets/coin1.png", size=40),
 ]
 
 def reset_game():
     global player, player_vel_y, no_chao, gravidade, velocidade, pulo, vidas, pontos
-    global plataformas, inimigos, inimigos_vel, inimigos_lim
+    global plataformas, inimigos, inimigos_vel, inimigos_lim, coins, game_finished, game_start_time, victory_time
 
-    # jogador
     player.x, player.y = 100, ALT - 150
     player_vel_y = 0
     no_chao = False
-
-    # física
     gravidade = 1.0
     velocidade = 5
     pulo = 18
-
-    # HUD
     vidas = 3
     pontos = 0
-
-    # plataformas
     plataformas = map_data.get_merged_collision_rects(map_data.TILE, collide_tiles=(1,2))
 
-    # inimigos (recria com variações aleatórias)
-    inimigos = [
+    inimigos[:] = [
         pygame.Rect(600, ALT - 120, 40, 40),
         pygame.Rect(1300, ALT - 120, 40, 40),
         pygame.Rect(2000, ALT - 120, 40, 40),
     ]
     for i in range(len(inimigos)):
         inimigos[i].x += random.randint(-6, 6)
-
-    inimigos_vel = [random.choice([-1, 1]) * random.uniform(0.8, 2.2) for _ in inimigos]
-    inimigos_lim = [(i.x - random.randint(40, 120), i.x + random.randint(40, 120)) for i in inimigos]
+    # recria velocidades e limites
+    inimigos_vel[:] = [random.choice([-1, 1]) * random.uniform(0.8, 2.2) for _ in inimigos]
+    inimigos_lim[:] = [(i.x - random.randint(40, 120), i.x + random.randint(40, 120)) for i in inimigos]
 
     coins.clear()
     coins.extend([
@@ -403,24 +310,80 @@ def reset_game():
         Coin(700, ALT - 320, sprite_path="assets/coin1.png", size=42),
         Coin(1200, ALT - 240, sprite_path="assets/coin1.png", size=40),
     ])
-#Loop principal do jogo
-while True:
-    #Trata os eventos do jogo
-    for event in pygame.event.get():
-    # Verifica consequências do evento
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
 
+    #marca o início do tempo do nível
+    game_finished = False
+    victory_time = None
+    game_start_time = pygame.time.get_ticks()
+
+#ranking 
+def load_ranking():
+    if not RANKING_FILE.exists():
+        return []
+    try:
+        with open(RANKING_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            #garantir formato pesquisado: lista de {"name":str,"time":float}
+            return [d for d in data if "name" in d and "time" in d]
+    except Exception as e:
+        print("Erro ao ler ranking:", e)
+        return []
+
+def save_ranking(ranking):
+    try:
+        with open(RANKING_FILE, "w", encoding="utf-8") as f:
+            json.dump(ranking, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("Erro ao salvar ranking:", e)
+
+def add_ranking_entry(name, time_seconds):
+    ranking = load_ranking()
+    ranking.append({"name": name, "time": float(time_seconds)})
+    #ordem por tempo ascendente
+    ranking.sort(key=lambda x: x["time"])
+    #manter top N
+    ranking = ranking[:MAX_RANK]
+    save_ranking(ranking)
+    return ranking
+
+#estado de input do nome
+input_name = ""
+name_active = False
+
+#LOOP PRINCIPAL
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit(); sys.exit()
+
+        #teclas globais
         if event.type == pygame.KEYDOWN:
-            # ESC volta ao menu a partir do jogo
             if estado == 'jogando' and event.key == pygame.K_ESCAPE:
                 estado = 'menu'
-            # Permitir ESC no menu para fechar (opcional)
             elif estado == 'menu' and event.key == pygame.K_ESCAPE:
-                pygame.quit()
-                sys.exit()
+                pygame.quit(); sys.exit()
+            #quando estiver na tela para digitar o nome, processamos entrada de texto
+            if estado == 'nome':
+                if event.key == pygame.K_RETURN:
+                    #se não tiver digitado nada, atribui "Jogador"
+                    if input_name.strip() == "":
+                        input_name = "Jogador"
+                    #salva entrada e mostra ranking
+                    ranking = add_ranking_entry(input_name.strip(), victory_time if victory_time is not None else 0.0)
+                    estado = 'ranking'
+                    input_name = ""
+                elif event.key == pygame.K_BACKSPACE:
+                    input_name = input_name[:-1]
+                else:
+                    #limita tamanho do nome
+                    if len(input_name) < 20 and event.unicode.isprintable():
+                        input_name += event.unicode
 
+            #atalho na tela de ranking: R para resetar e voltar ao menu
+            if estado == 'ranking' and event.key == pygame.K_r:
+                estado = 'menu'
+
+        #mouse em menu/regras
         if estado == 'menu':
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if btn_jogar.collidepoint(event.pos):
@@ -429,27 +392,51 @@ while True:
                 elif btn_regras.collidepoint(event.pos):
                     estado = 'regras'
                 elif btn_sair.collidepoint(event.pos):
-                    pygame.quit()
-                    sys.exit()
-
+                    pygame.quit(); sys.exit()
         elif estado == 'regras':
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if btn_voltar.collidepoint(event.pos):
                     estado = 'menu'
 
-    #Desenha a tela conforme o estado atual
+    #desenha conforme estado
     if estado == 'menu':
         tela_menu()
     elif estado == 'regras':
         tela_regras()
     elif estado == 'jogando':
         tela_jogo_temporaria()
+    elif estado == 'nome':
+        #tela de vitória e instrução para digitar o nome
+        tela.fill((20, 40, 60))
+        desenho_textcent(tela, "Você venceu!!", FONT_BIG, (255, 220, 100), ALT // 2 - 80)
+        if victory_time is not None:
+            ttxt = f"Tempo: {victory_time:.3f} s"
+            desenho_textcent(tela, ttxt, FONT_MED, BRANCO, ALT // 2 - 10)
+        desenho_textcent(tela, "Pressione ENTER para confirmar e digitar seu nome", FONT_PEQ, (200,200,200), ALT // 2 + 40)
+        #se o jogador apertou Enter, o loop de eventos tratará a entrada
+        #mostra o que está digitando (input_name)
+        box_w = 500; box_h = 48
+        box_x = (LARG - box_w) // 2; box_y = ALT // 2 + 100
+        pygame.draw.rect(tela, (255,255,255), (box_x, box_y, box_w, box_h), border_radius=8)
+        txtsurf = FONT_MED.render(input_name or "Digite seu nome...", True, (0,0,0))
+        tela.blit(txtsurf, (box_x + 10, box_y + (box_h - txtsurf.get_height())//2))
+    elif estado == 'ranking':
+        #mostra ranking salvo
+        tela.fill((10, 10, 30))
+        desenho_textcent(tela, "Ranking - Melhores Tempos", FONT_BIG, (255, 220, 180), 80)
+        ranking = load_ranking()
+        start_y = 150
+        for i, entry in enumerate(ranking):
+            name = entry.get("name", "Jogador")
+            time_s = float(entry.get("time", 0.0))
+            txt = f"{i+1:2d}. {name:20s} - {time_s:.3f} s"
+            surf = FONT_PEQ.render(txt, True, (220,220,220))
+            tela.blit(surf, (LARG//2 - 220, start_y + i * 32))
+        #instruções
+        desenho_textcent(tela, "Pressione R para voltar ao menu", FONT_PEQ, (180,180,180), ALT - 60)
 
     pygame.display.flip()
     clock.tick(60)
 
-    #Atualiza estado do jogo
+    #atualiza display
     pygame.display.update()
-
-#Finaliza o pygame
-pygame.quit()
