@@ -35,6 +35,33 @@ pygame.display.set_caption("Super Sônico")
 map_data.load_tiles()
 LARG, ALT = tela.get_size()  #ajusta o tamanho de acordo c o monitor
 
+PLAYER_PAD = "sonic_parado_d.png"
+PLAYER_PAE = "sonic_parado_e.png"
+PLAYER_COD  = "sonic_correndo_d.png"
+PLAYER_COE  = "sonic_correndo_e.png"
+
+def load_player_sprites(target_width=None, target_height=None):
+    def _safe_load(path):
+        try:
+            surf = pygame.image.load(path).convert_alpha()
+            return surf
+        except Exception as e:
+            return None
+
+    s_pad = _safe_load(PLAYER_PAD)
+    s_pae = _safe_load(PLAYER_PAE)
+    s_cod  = _safe_load(PLAYER_COD)
+    s_coe  = _safe_load(PLAYER_COE)
+
+    if target_width and target_height:
+        def _scale(s):
+            return None if s is None else pygame.transform.smoothscale(s, (target_width, target_height))
+        return (_scale(s_pad), _scale(s_pae), _scale(s_cod), _scale(s_coe))
+    else:
+        return (s_pad, s_pae, s_cod, s_coe)
+
+player_sprites = (None, None, None, None)
+
 #estado do jogo
 estado = 'menu'  #'menu','regras','jogando','nome','ranking'
 game_finished = False
@@ -192,7 +219,7 @@ def tela_jogo_temporaria():
     global player, player_vel_y, no_chao, vidas, pontos
     global inimigos, inimigos_vel, inimigos_lim, plataformas, coins, camera_x
     global estado, game_finished, game_start_time, victory_time, coins, inimigo, inimigos_lim, inimigos_vel
-
+    global player_facing, player_moving
     # desenha mapa
     map_data.draw_level(tela, map_data.LEVEL, (camera_x, 0))
 
@@ -212,6 +239,12 @@ def tela_jogo_temporaria():
     if (teclas[pygame.K_UP] or teclas[pygame.K_w] or teclas[pygame.K_SPACE]) and no_chao:
         som_pulo.play()
         player_vel_y = -pulo; no_chao = False
+
+    player_moving = (vel_x != 0)
+    if vel_x > 0:
+        player_facing = "right"
+    elif vel_x < 0:
+        player_facing = "left"
 
     #mov horizontal e colisões X
     player.x += vel_x
@@ -280,10 +313,29 @@ def tela_jogo_temporaria():
     #desenha moedinhas
     for c in coins: c.draw(tela, camera_x)
 
-    #desenha player e inimigos
-    pygame.draw.rect(tela, (255, 0, 0), (player.x - camera_x, player.y, player.width, player.height))
+    pad, pae, cod, coe = player_sprites
+
+    sprite = None
+    if player_moving:
+        if player_facing == "right":
+            sprite = cod or pad
+        else:
+            sprite = coe or pae
+    else:
+        sprite = pad if player_facing == "right" else pae
+
+    screen_x = int(player.x - camera_x)
+    screen_y = int(player.y)
+
+    if sprite:
+        rect_sprite = sprite.get_rect(topleft=(screen_x, screen_y))
+        tela.blit(sprite, rect_sprite)
+    else:
+        pygame.draw.rect(tela, (255, 0, 0), (screen_x, player.y, player.width, player.height))
+
     for inimigo in inimigos:
         pygame.draw.rect(tela, (0, 0, 0), (inimigo.x - camera_x, inimigo.y, inimigo.width, inimigo.height))
+
 
     #HUD com vidas e pontos
     texto = FONT_MED.render(f"Vidas: {vidas}   Pontos: {pontos}", True, PRETO)
@@ -304,6 +356,13 @@ def tela_jogo_temporaria():
 
 #VARIAVEIS DO JOGO
 player = pygame.Rect(100, ALT - 150, 30, 45)
+player_sprites = load_player_sprites(player.width, player.height)
+pad, pae, cod, coe = player_sprites
+if pad and pae is None:
+    pae = pygame.transform.flip(pad, True, False)
+if cod and coe is None:
+    coe = pygame.transform.flip(cod, True, False)
+player_sprites = (pad, pae, cod, coe)
 player_vel_y = 0
 no_chao = False
 gravidade = 1.0
@@ -420,6 +479,9 @@ def add_ranking_entry(name, time_seconds):
 #estado de input do nome
 input_name = ""
 name_active = False
+
+player_facing = "right"
+player_moving = False
 
 #LOOP PRINCIPAL
 while True:
