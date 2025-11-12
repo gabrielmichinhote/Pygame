@@ -440,3 +440,4 @@ while True:
 
     #atualiza display
     pygame.display.update()
+    #quase pronto
