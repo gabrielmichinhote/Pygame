@@ -72,6 +72,8 @@ btn_jogar = pygame.Rect(btn_x, 200, btn_larg, btn_alt)
 btn_regras = pygame.Rect(btn_x, 200 + btn_alt + btn_gap, btn_larg, btn_alt)
 btn_sair = pygame.Rect(btn_x, 200 + 2 * (btn_alt + btn_gap), btn_larg, btn_alt)
 btn_voltar = pygame.Rect(30, ALT - 80, 140, 50)
+btn_restart = pygame.Rect(btn_x, 500, btn_larg, btn_alt)
+btn_to_menu = pygame.Rect(btn_x, 600, btn_larg, btn_alt)
 
 #menu e regrinhas 
 regras_t = ["Regras do Super Sônico:",
@@ -201,11 +203,15 @@ def tela_jogo_temporaria():
             elif player_vel_y < 0:
                 player.top = p.bottom; player_vel_y = 0
 
-    #limites 
-    if player.x < 0: player.x = 0
-    if player.right > MAP_WIDTH: player.right = MAP_WIDTH
-    if player.bottom > ALT:
-        player.bottom = ALT; player_vel_y = 0; no_chao = True
+    # limites horizontais
+    if player.x < 0:
+        player.x = 0
+    if player.right > MAP_WIDTH:
+        player.right = MAP_WIDTH
+
+    if player.top > ALT:
+        game_finished = True
+        estado = 'game_over'
 
     #mov dos inimigos e colisoes
     for idx in range(len(inimigos) - 1, -1, -1):
@@ -383,6 +389,13 @@ while True:
             if estado == 'ranking' and event.key == pygame.K_r:
                 estado = 'menu'
 
+            if estado == 'game_over':
+                if event.key == pygame.K_r:
+                    reset_game()
+                    estado = 'jogando'
+                elif event.key == pygame.K_ESCAPE:
+                    estado = 'menu'
+
         #mouse em menu/regras
         if estado == 'menu':
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -397,6 +410,13 @@ while True:
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if btn_voltar.collidepoint(event.pos):
                     estado = 'menu'
+        if estado == 'game_over' and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if btn_restart.collidepoint(event.pos):
+                reset_game()
+                estado = 'jogando'
+            elif btn_to_menu.collidepoint(event.pos):
+                estado = 'menu'
+        
 
     #desenha conforme estado
     if estado == 'menu':
@@ -413,15 +433,12 @@ while True:
             ttxt = f"Tempo: {victory_time:.3f} s"
             desenho_textcent(tela, ttxt, FONT_MED, BRANCO, ALT // 2 - 10)
         desenho_textcent(tela, "Pressione ENTER para confirmar e digitar seu nome", FONT_PEQ, (200,200,200), ALT // 2 + 40)
-        #se o jogador apertou Enter, o loop de eventos tratará a entrada
-        #mostra o que está digitando (input_name)
         box_w = 500; box_h = 48
         box_x = (LARG - box_w) // 2; box_y = ALT // 2 + 100
         pygame.draw.rect(tela, (255,255,255), (box_x, box_y, box_w, box_h), border_radius=8)
         txtsurf = FONT_MED.render(input_name or "Digite seu nome...", True, (0,0,0))
         tela.blit(txtsurf, (box_x + 10, box_y + (box_h - txtsurf.get_height())//2))
     elif estado == 'ranking':
-        #mostra ranking salvo
         tela.fill((10, 10, 30))
         desenho_textcent(tela, "Ranking - Melhores Tempos", FONT_BIG, (255, 220, 180), 80)
         ranking = load_ranking()
@@ -434,10 +451,23 @@ while True:
             tela.blit(surf, (LARG//2 - 220, start_y + i * 32))
         #instruções
         desenho_textcent(tela, "Pressione R para voltar ao menu", FONT_PEQ, (180,180,180), ALT - 60)
+    #tela de game over
+    elif estado == 'game_over':
+        tela.fill((20, 20, 30))
+        desenho_textcent(tela, "GAME OVER", FONT_BIG, (255, 60, 60), ALT // 2 - 80)
+        desenho_textcent(tela, "Você morreu!", FONT_PEQ, (200,200,200), ALT // 2 - 20)
+
+        # desenha os botões
+        mx, my = pygame.mouse.get_pos()
+        botao(tela, btn_restart, "Recomeçar", FONT_MED, PRETO, VERDE, btn_restart.collidepoint((mx, my)))
+        botao(tela, btn_to_menu, "Voltar ao menu", FONT_MED, PRETO, CINZA, btn_to_menu.collidepoint((mx, my)))
+
+        # dica de teclado
+        desenho_textcent(tela, "Pressione R para recomeçar ou ESC para voltar ao menu", FONT_PEQ, (180,180,180), ALT - 60)
+
 
     pygame.display.flip()
     clock.tick(60)
 
     #atualiza display
     pygame.display.update()
-    #quase pronto
