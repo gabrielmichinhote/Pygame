@@ -14,7 +14,9 @@ FONT_BIG = pygame.font.SysFont("arial", 64)
 FONT_MED = pygame.font.SysFont("arial", 36)
 FONT_PEQ = pygame.font.SysFont("arial", 24)
 MAP_WIDTH = map_data.COLS * map_data.TILE
-
+FONT_GO = pygame.font.Font('NiseJSRF.ttf',96)
+FONT_GO_MENOR = pygame.font.Font('BloomsFree.ttf', 48)
+FONT_TITULO = pygame.font.Font('TheBlackKnightDEMO.otf', 125)
 #cores
 BRANCO = (255, 255, 255)
 PRETO = (0, 0, 0)
@@ -86,7 +88,7 @@ regras_t = ["Regras do Super Sônico:",
 
 def tela_menu():
     tela.fill((135, 206, 235))
-    desenho_textcent(tela, "Super Sônico", FONT_BIG, PRETO, 100)
+    desenho_textcent(tela, "SUPER SONICO", FONT_TITULO, PRETO, 130)
     mx, my = pygame.mouse.get_pos()
     botao(tela, btn_jogar, "Jogar", FONT_MED, PRETO, VERDE, btn_jogar.collidepoint((mx, my)))
     botao(tela, btn_regras, "Regras", FONT_MED, PRETO, AZUL, btn_regras.collidepoint((mx, my)))
@@ -468,8 +470,8 @@ while True:
     #tela de game over
     elif estado == 'game_over':
         tela.fill((20, 20, 30))
-        desenho_textcent(tela, "GAME OVER", FONT_BIG, (255, 60, 60), ALT // 2 - 80)
-        desenho_textcent(tela, "Você morreu!", FONT_PEQ, (200,200,200), ALT // 2 - 20)
+        desenho_textcent(tela, "GAME OVER", FONT_GO, (255, 60, 60), ALT // 2 - 80)
+        desenho_textcent(tela, "Você morreu!", FONT_GO_MENOR, (200,200,200), 450)
 
         # desenha os botões
         mx, my = pygame.mouse.get_pos()
