@@ -195,7 +195,7 @@ def tela_jogo_temporaria():
     if teclas[pygame.K_RIGHT] or teclas[pygame.K_d]:
         vel_x = velocidade
     if (teclas[pygame.K_UP] or teclas[pygame.K_w] or teclas[pygame.K_SPACE]) and no_chao:
-        pygame.mixer.Sound.play(jump_sound)
+       # pygame.mixer.Sound.play(jump_sound)
         player_vel_y = -pulo; no_chao = False
 
     #mov horizontal e colisões X
@@ -253,7 +253,7 @@ def tela_jogo_temporaria():
     for c in coins: c.update()
     for c in coins:
         if not c.collected and c.try_collect(player):
-            pygame.mixer.Sound.play(coin_sound)
+          #  pygame.mixer.Sound.play(coin_sound)
             pontos += 1
 
     #desenha moedinhas
@@ -314,7 +314,7 @@ coins = [
 
 def reset_game():
     global player, player_vel_y, no_chao, gravidade, velocidade, pulo, vidas, pontos
-    global plataformas, game_finished, game_start_time, victory_time
+    global plataformas, game_finished, game_start_time, victory_time, coins, inimigos, inimigos_vel, inimigos_lim
 
     player.x, player.y = 100, ALT - 150
     player_vel_y = 0
@@ -337,6 +337,25 @@ def reset_game():
         pygame.Rect(4500, ALT - 400, 40, 40),
         pygame.Rect(5000, ALT - 300, 40, 40),
         pygame.Rect(5500, ALT - 170, 40, 40),
+    ]
+
+    coins[:] = [
+        Coin(310, ALT - 190, sprite_path=None, size=36),            
+        Coin(500, ALT - 170, sprite_path=None, size=30),
+        Coin(620, ALT - 320, sprite_path=None, size=36),
+        Coin(870, ALT - 170, sprite_path="assets/coin1.png", size=42),
+        Coin(1200, ALT - 250, sprite_path="assets/coin1.png", size=40),
+        Coin(1480, ALT - 320, sprite_path="assets/coin1.png", size=42),
+        Coin(1740, ALT - 230, sprite_path="assets/coin1.png", size=40),
+        Coin(2100, ALT - 320, sprite_path="assets/coin1.png", size=42),
+        Coin(2500, ALT - 170, sprite_path="assets/coin1.png", size=40),
+        Coin(2700, ALT - 320, sprite_path="assets/coin1.png", size=42),
+        Coin(3000, ALT - 240, sprite_path="assets/coin1.png", size=40),
+        Coin(3500, ALT - 170, sprite_path="assets/coin1.png", size=42),
+        Coin(3800, ALT - 300, sprite_path="assets/coin1.png", size=40),
+        Coin(4500, ALT - 400, sprite_path="assets/coin1.png", size=42),
+        Coin(5000, ALT - 300, sprite_path="assets/coin1.png", size=40),
+        Coin(5500, ALT - 170, sprite_path="assets/coin1.png", size=42),
     ]
     for i in range(len(inimigos)):
         inimigos[i].x += random.randint(-6, 6)
