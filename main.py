@@ -32,6 +32,7 @@ camera_x = 0
 #start em fullscreen
 tela = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 pygame.display.set_caption("Super Sônico")
+map_data.load_tiles()
 LARG, ALT = tela.get_size()  #ajusta o tamanho de acordo c o monitor
 
 #estado do jogo
