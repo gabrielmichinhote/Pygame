@@ -45,7 +45,11 @@ RANKING_FILE = Path("ranking.json")
 MAX_RANK = 10
 
 jump_sound = pygame.mixer.Sound("jump.wav")
-coin_sound = pygame.mixer.Sound("coin.wav")  
+coin_sound = pygame.mixer.Sound("coin.wav")
+pygame.mixer.music.load("Musicatema.wav")
+pygame.mixer.music.set_volume(0.5)  
+pygame.mixer.music.play(-1)
+
 #utilitarios
 def desenho_textcent(tela, texto, fonte, cor, y):
     surf = fonte.render(texto, True, cor)
@@ -447,6 +451,7 @@ while True:
         if estado == 'menu':
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if btn_jogar.collidepoint(event.pos):
+                    pygame.mixer.music.stop()
                     reset_game()
                     estado = 'jogando'
                 elif btn_regras.collidepoint(event.pos):
@@ -467,6 +472,9 @@ while True:
 
     #desenha conforme estado
     if estado == 'menu':
+        if not pygame.mixer.music.get_busy():
+            pygame.mixer.music.load("Musicatema.wav")
+            pygame.mixer.music.play(-1)
         tela_menu()
     elif estado == 'regras':
         tela_regras()
