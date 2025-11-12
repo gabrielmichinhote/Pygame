@@ -46,6 +46,14 @@ PLAYER_PAD = "sonic_parado_d.png"
 PLAYER_PAE = "sonic_parado_e.png"
 PLAYER_COD  = "sonic_correndo_d.png"
 PLAYER_COE  = "sonic_correndo_e.png"
+INIMIGO_IMG = "inimigo2.png"
+
+try:
+    inimigo_img = pygame.image.load(INIMIGO_IMG).convert_alpha()
+    inimigo_img = pygame.transform.smoothscale(inimigo_img, (40, 40))
+except Exception as e:
+    inimigo_img = None
+
 
 def load_player_sprites(target_width=None, target_height=None):
     def _safe_load(path):
@@ -345,7 +353,10 @@ def tela_jogo_temporaria():
         pygame.draw.rect(tela, (255, 0, 0), (screen_x, player.y, player.width, player.height))
 
     for inimigo in inimigos:
-        pygame.draw.rect(tela, (0, 0, 0), (inimigo.x - camera_x, inimigo.y, inimigo.width, inimigo.height))
+        if inimigo_img:
+            tela.blit(inimigo_img, (inimigo.x - camera_x, inimigo.y))
+        else:
+            pygame.draw.rect(tela, (0, 0, 0), (inimigo.x - camera_x, inimigo.y, inimigo.width, inimigo.height))
 
 
     #HUD com vidas e pontos
