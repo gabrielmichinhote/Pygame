@@ -236,11 +236,15 @@ def tela_jogo_temporaria():
                 pontos += 100; player_vel_y = -pulo * 0.6; no_chao = False
             else:
                 vidas -= 1
-                player.x, player.y = 100, ALT - 150; player_vel_y = 0; no_chao = False
+                player.x, player.y = 100, ALT - 200
+                player_vel_y = 0
+                no_chao = False
                 if vidas <= 0:
                     pygame.time.delay(800)
-                    player.x, player.y = 100, ALT - 150; player_vel_y = 0
-                    vidas = 3; pontos = 0
+                    player.x, player.y = 100, ALT - 200
+                    player_vel_y = 0
+                    vidas = 3
+                    pontos = 0
 
     #att moedinhas coletadas 
     for c in coins: c.update()
@@ -313,7 +317,22 @@ def reset_game():
         Coin(700, ALT - 320, sprite_path="assets/coin1.png", size=42),
         Coin(1200, ALT - 240, sprite_path="assets/coin1.png", size=40),
     ])
-
+    inimigos[:] = [
+        pygame.Rect(600, ALT - 332, 40, 40),
+        pygame.Rect(600, ALT - 170, 40, 40),
+        pygame.Rect(2100, ALT - 330, 40, 40),
+        pygame.Rect(2500, ALT - 300, 40, 40),
+        pygame.Rect(2800, ALT - 300, 40, 40),
+        pygame.Rect(3500, ALT - 170, 40, 40),
+        pygame.Rect(3900, ALT - 300, 40, 40),
+        pygame.Rect(4500, ALT - 400, 40, 40),
+        pygame.Rect(5000, ALT - 300, 40, 40),
+        pygame.Rect(5500, ALT - 170, 40, 40),
+    ]
+    for i in range(len(inimigos)):
+        inimigos[i].x += random.randint(-6, 6)
+    inimigos_vel[:] = [random.choice([-1, 1]) * random.uniform(0.8, 2.2) for _ in inimigos]
+    inimigos_lim[:] = [(i.x - random.randint(40, 120), i.x + random.randint(40, 120)) for i in inimigos]
     #marca o início do tempo do nível
     game_finished = False
     victory_time = None
