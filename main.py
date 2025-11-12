@@ -16,7 +16,7 @@ FONT_PEQ = pygame.font.SysFont("arial", 24)
 MAP_WIDTH = map_data.COLS * map_data.TILE
 FONT_GO = pygame.font.Font('NiseJSRF.ttf',96)
 FONT_GO_MENOR = pygame.font.Font('BloomsFree.ttf', 48)
-FONT_TITULO = pygame.font.Font('Rambors.ttf', 125)
+FONT_TITULO = pygame.font.Font('Westland.ttf', 125)
 
 #cores
 BRANCO = (255, 255, 255)
@@ -27,8 +27,8 @@ AZUL = (0, 0, 255)
 CINZA = (128, 128, 128)
 
 camera_x = 0
-jump_sound = pygame.mixer.Sound("Pygame/supersonico/jump.wav")
-coin_sound = pygame.mixer.Sound("Pygame/supersonico/26f8b9_sonic_sound_effect.wav")
+#jump_sound = pygame.mixer.Sound("Pygame/supersonico/jump.wav")
+#coin_sound = pygame.mixer.Sound("Pygame/supersonico/26f8b9_sonic_ring_sound_effect.wav")
 #start em fullscreen
 tela = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 pygame.display.set_caption("Super Sônico")
@@ -54,7 +54,7 @@ def botao(tela, rect, texto, fonte, cor_t, cor_f, houver=False):
     nova_cor = []
     for c in cor_f:
         if houver:
-            valor = c * 1.1
+            valor = c * 1.5
         else:
             valor = c * 1.0
         valor = int(valor)
@@ -92,19 +92,19 @@ def tela_menu():
     tela.fill((135, 206, 235))
     desenho_textcent(tela, "SUPER SONICO", FONT_TITULO, PRETO, 130)
     mx, my = pygame.mouse.get_pos()
-    botao(tela, btn_jogar, "Jogar", FONT_MED, PRETO, VERDE, btn_jogar.collidepoint((mx, my)))
-    botao(tela, btn_regras, "Regras", FONT_MED, PRETO, AZUL, btn_regras.collidepoint((mx, my)))
-    botao(tela, btn_sair, "Sair", FONT_MED, PRETO, VERMELHO, btn_sair.collidepoint((mx, my)))
+    botao(tela, btn_jogar, "Jogar", FONT_GO_MENOR, PRETO, VERDE, btn_jogar.collidepoint((mx, my)))
+    botao(tela, btn_regras, "Regras", FONT_GO_MENOR, PRETO, AZUL, btn_regras.collidepoint((mx, my)))
+    botao(tela, btn_sair, "Sair", FONT_GO_MENOR, PRETO, VERMELHO, btn_sair.collidepoint((mx, my)))
 
 def tela_regras():
     tela.fill((240,240,240))
-    desenho_textcent(tela,"Regras", FONT_BIG, PRETO, 60)
+    desenho_textcent(tela,"Regras", FONT_GO_MENOR, PRETO, 80)
     start_y = 140
     for i, linha in enumerate(regras_t):
         surf = FONT_PEQ.render(linha, True, PRETO)
         tela.blit(surf, (60, start_y + i * 30))
     mx, my = pygame.mouse.get_pos()
-    botao(tela, btn_voltar, "Voltar", FONT_MED, PRETO, CINZA, btn_voltar.collidepoint((mx, my)))
+    botao(tela, btn_voltar, "Voltar", FONT_GO_MENOR, PRETO, CINZA, btn_voltar.collidepoint((mx, my)))
 
 #inimigos iniciais 
 
