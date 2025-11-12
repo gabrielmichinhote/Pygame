@@ -6,8 +6,10 @@ import json
 from pathlib import Path
 import map as map_data
 
+
 #inicializacao do jogo
 pygame.init()
+pygame.mixer.init() 
 LARG, ALT = 800, 600
 clock = pygame.time.Clock()
 FONT_BIG = pygame.font.SysFont("arial", 64)
@@ -27,9 +29,7 @@ AZUL = (0, 0, 255)
 CINZA = (128, 128, 128)
 
 camera_x = 0
-#jump_sound = pygame.mixer.Sound("Pygame/supersonico/jump.wav")
-#coin_sound = pygame.mixer.Sound("Pygame/supersonico/26f8b9_sonic_ring_sound_effect.wav")
-#start em fullscreen
+
 tela = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 pygame.display.set_caption("Super Sônico")
 map_data.load_tiles()
@@ -44,6 +44,8 @@ victory_time = None
 RANKING_FILE = Path("ranking.json")
 MAX_RANK = 10
 
+jump_sound = pygame.mixer.Sound("jump.wav")
+coin_sound = pygame.mixer.Sound("coin.wav")  
 #utilitarios
 def desenho_textcent(tela, texto, fonte, cor, y):
     surf = fonte.render(texto, True, cor)
@@ -196,7 +198,7 @@ def tela_jogo_temporaria():
     if teclas[pygame.K_RIGHT] or teclas[pygame.K_d]:
         vel_x = velocidade
     if (teclas[pygame.K_UP] or teclas[pygame.K_w] or teclas[pygame.K_SPACE]) and no_chao:
-       # pygame.mixer.Sound.play(jump_sound)
+        jump_sound.play()
         player_vel_y = -pulo; no_chao = False
 
     #mov horizontal e colisões X
@@ -254,7 +256,7 @@ def tela_jogo_temporaria():
     for c in coins: c.update()
     for c in coins:
         if not c.collected and c.try_collect(player):
-          #  pygame.mixer.Sound.play(coin_sound)
+            coin_sound.play()
             pontos += 1
 
     #desenha moedinhas
@@ -509,7 +511,6 @@ while True:
 
         # dica de teclado
         desenho_textcent(tela, "Pressione R para recomeçar ou ESC para voltar ao menu", FONT_PEQ, (180,180,180), ALT - 60)
-
 
     pygame.display.flip()
     clock.tick(60)
