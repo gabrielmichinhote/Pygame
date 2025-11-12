@@ -290,15 +290,27 @@ pontos = 0
 plataformas = map_data.get_merged_collision_rects(map_data.TILE, collide_tiles=(1,2))
 
 coins = [
-    Coin(300, ALT - 140, sprite_path=None, size=36),
-    Coin(450, ALT - 220, sprite_path=None, size=30),
-    Coin(700, ALT - 320, sprite_path="assets/coin1.png", size=42),
-    Coin(1200, ALT - 240, sprite_path="assets/coin1.png", size=40),
+    Coin(310, ALT - 190, sprite_path=None, size=36),
+    Coin(500, ALT - 170, sprite_path=None, size=30),
+    Coin(620, ALT - 320, sprite_path=None, size=36),
+    Coin(870, ALT - 170, sprite_path="assets/coin1.png", size=42),  
+    Coin(1200, ALT - 250, sprite_path="assets/coin1.png", size=40),
+    Coin(1480, ALT - 320, sprite_path="assets/coin1.png", size=42),  
+    Coin(1740, ALT - 230, sprite_path="assets/coin1.png", size=40),
+    Coin(2100, ALT - 320, sprite_path="assets/coin1.png", size=42),  
+    Coin(2500, ALT - 170, sprite_path="assets/coin1.png", size=40),
+    Coin(2700, ALT - 320, sprite_path="assets/coin1.png", size=42),  
+    Coin(3000, ALT - 240, sprite_path="assets/coin1.png", size=40),
+    Coin(3500, ALT - 170, sprite_path="assets/coin1.png", size=42),  
+    Coin(3800, ALT - 300, sprite_path="assets/coin1.png", size=40),
+    Coin(4500, ALT - 400, sprite_path="assets/coin1.png", size=42),
+    Coin(5000, ALT - 300, sprite_path="assets/coin1.png", size=40),
+    Coin(5500, ALT - 170, sprite_path="assets/coin1.png", size=42),
 ]
 
 def reset_game():
     global player, player_vel_y, no_chao, gravidade, velocidade, pulo, vidas, pontos
-    global plataformas, coins, game_finished, game_start_time, victory_time
+    global plataformas, game_finished, game_start_time, victory_time
 
     player.x, player.y = 100, ALT - 150
     player_vel_y = 0
@@ -310,13 +322,6 @@ def reset_game():
     pontos = 0
     plataformas = map_data.get_merged_collision_rects(map_data.TILE, collide_tiles=(1,2))
 
-    coins.clear()
-    coins.extend([
-        Coin(300, ALT - 140, sprite_path=None, size=36),
-        Coin(450, ALT - 220, sprite_path=None, size=30),
-        Coin(700, ALT - 320, sprite_path="assets/coin1.png", size=42),
-        Coin(1200, ALT - 240, sprite_path="assets/coin1.png", size=40),
-    ])
     inimigos[:] = [
         pygame.Rect(600, ALT - 332, 40, 40),
         pygame.Rect(600, ALT - 170, 40, 40),
