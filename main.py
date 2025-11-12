@@ -16,7 +16,8 @@ FONT_PEQ = pygame.font.SysFont("arial", 24)
 MAP_WIDTH = map_data.COLS * map_data.TILE
 FONT_GO = pygame.font.Font('NiseJSRF.ttf',96)
 FONT_GO_MENOR = pygame.font.Font('BloomsFree.ttf', 48)
-FONT_TITULO = pygame.font.Font('TheBlackKnightDEMO.otf', 125)
+FONT_TITULO = pygame.font.Font('Rambors.ttf', 125)
+
 #cores
 BRANCO = (255, 255, 255)
 PRETO = (0, 0, 0)
