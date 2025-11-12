@@ -103,10 +103,18 @@ def tela_regras():
     botao(tela, btn_voltar, "Voltar", FONT_MED, PRETO, CINZA, btn_voltar.collidepoint((mx, my)))
 
 #inimigos iniciais 
+
 inimigos = [
-    pygame.Rect(600, ALT - 120, 40, 40),
-    pygame.Rect(1300, ALT - 120, 40, 40),
-    pygame.Rect(2000, ALT - 120, 40, 40),
+    pygame.Rect(600, ALT - 332, 40, 40),
+    pygame.Rect(600, ALT - 170, 40, 40),
+    pygame.Rect(2100, ALT - 330, 40, 40),
+    pygame.Rect(2500, ALT - 300, 40, 40),
+    pygame.Rect(2800, ALT - 300, 40, 40),
+    pygame.Rect(3500, ALT - 170, 40, 40),
+    pygame.Rect(3900, ALT - 300, 40, 40),
+    pygame.Rect(4500, ALT - 400, 40, 40),
+    pygame.Rect(5000, ALT - 300, 40, 40),
+    pygame.Rect(5500, ALT - 170, 40, 40), 
 ]
 for i in range(len(inimigos)):
     inimigos[i].x += random.randint(-6, 6)
@@ -286,7 +294,7 @@ coins = [
 
 def reset_game():
     global player, player_vel_y, no_chao, gravidade, velocidade, pulo, vidas, pontos
-    global plataformas, inimigos, inimigos_vel, inimigos_lim, coins, game_finished, game_start_time, victory_time
+    global plataformas, coins, game_finished, game_start_time, victory_time
 
     player.x, player.y = 100, ALT - 150
     player_vel_y = 0
@@ -297,17 +305,6 @@ def reset_game():
     vidas = 3
     pontos = 0
     plataformas = map_data.get_merged_collision_rects(map_data.TILE, collide_tiles=(1,2))
-
-    inimigos[:] = [
-        pygame.Rect(600, ALT - 120, 40, 40),
-        pygame.Rect(1300, ALT - 120, 40, 40),
-        pygame.Rect(2000, ALT - 120, 40, 40),
-    ]
-    for i in range(len(inimigos)):
-        inimigos[i].x += random.randint(-6, 6)
-    # recria velocidades e limites
-    inimigos_vel[:] = [random.choice([-1, 1]) * random.uniform(0.8, 2.2) for _ in inimigos]
-    inimigos_lim[:] = [(i.x - random.randint(40, 120), i.x + random.randint(40, 120)) for i in inimigos]
 
     coins.clear()
     coins.extend([
