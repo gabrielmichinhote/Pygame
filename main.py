@@ -15,10 +15,14 @@ clock = pygame.time.Clock()
 FONT_BIG = pygame.font.SysFont("arial", 64)
 FONT_MED = pygame.font.SysFont("arial", 36)
 FONT_PEQ = pygame.font.SysFont("arial", 24)
+FONT_REGRAS = pygame.font.SysFont("arial", 32)
 MAP_WIDTH = map_data.COLS * map_data.TILE
 FONT_GO = pygame.font.Font('NiseJSRF.ttf',96)
 FONT_GO_MENOR = pygame.font.Font('BloomsFree.ttf', 48)
 FONT_TITULO = pygame.font.Font('Westland.ttf', 125)
+
+map_data.BG_TARGET_HEIGHT = ALT
+map_data.load_tiles()
 
 #cores
 BRANCO = (255, 255, 255)
@@ -41,6 +45,27 @@ try:
     bg_img = pygame.transform.smoothscale(bg_img, (LARG, ALT))
 except Exception as e:
     bg_img = None
+
+BG_REGRAS_PATH = "background sonic.jpg"
+try:
+    regras_bg_img = pygame.image.load(BG_REGRAS_PATH).convert()
+    regras_bg_img = pygame.transform.smoothscale(regras_bg_img, (LARG, ALT))
+except Exception as e:
+    regras_bg_img = None
+
+BG_LEVEL_PATH = "fundo_super_sonico_gameplay.jpg"
+BG_LEVEL_TILE_PATH = "nada.png"
+try:
+    bg_level_img = pygame.image.load(BG_LEVEL_PATH).convert()
+    bg_level_img = pygame.transform.smoothscale(bg_level_img, (MAP_WIDTH, ALT))
+except Exception as e:
+    bg_level_img = None
+
+try:
+    bg_level_tile = pygame.image.load(BG_LEVEL_TILE_PATH).convert()
+except Exception as e:
+    bg_level_tile = None
+
 
 PLAYER_PAD = "sonic_parado_d.png"
 PLAYER_PAE = "sonic_parado_e.png"
@@ -90,14 +115,14 @@ MAX_RANK = 10
 som_pulo = pygame.mixer.Sound("jump.wav")
 som_moeda = pygame.mixer.Sound("coin.wav")
 pygame.mixer.music.load("Musicatema.wav")
-pygame.mixer.music.set_volume(0.5)  
+pygame.mixer.music.set_volume(1)  
 pygame.mixer.music.play(-1)
 som_go = pygame.mixer.Sound("gameover.wav")
-som_go.set_volume(0.7)
+som_go.set_volume(1)
 som_inimigo_morrendo = pygame.mixer.Sound("morteinimigo.wav")
-som_inimigo_morrendo.set_volume(0.7)
+som_inimigo_morrendo.set_volume(1)
 som_player_morrendo = pygame.mixer.Sound("mortejogador.wav")
-som_player_morrendo.set_volume(0.7)
+som_player_morrendo.set_volume(1)
 som_gp = 'mario.wav'
 
 #utilitarios
@@ -138,11 +163,12 @@ btn_to_menu = pygame.Rect(btn_x, 600, btn_larg, btn_alt)
 
 #menu e regrinhas 
 regras_t = ["Regras do Super Sônico:",
-            "1. Use as setas do teclado para mover o personagem.",
+            "1. Use as setas do teclado, WAD ou ESPAÇo para mover o personagem.",
             "2. Colete itens para ganhar pontos.",
             "3. Evite inimigos para não perder vidas.",
             "4. Se cair no abismo, perderá uma vida.",
             "5. Chegue ao fim do nível para vencer!",
+            "6. Caso morra, pode apertar R para recomeçar ou ESC para voltar ao menu.",
             "Divirta-se jogando!"]
 
 def tela_menu():
@@ -157,11 +183,14 @@ def tela_menu():
     botao(tela, btn_sair, "Sair", FONT_GO_MENOR, PRETO, VERMELHO, btn_sair.collidepoint((mx, my)))
 
 def tela_regras():
-    tela.fill((240,240,240))
-    desenho_textcent(tela,"Regras", FONT_GO_MENOR, PRETO, 80)
+    if regras_bg_img:
+        tela.blit(regras_bg_img, (0, 0))
+    else:
+        tela.fill((240,240,240))
+    desenho_textcent(tela, "Regras", FONT_GO_MENOR, PRETO, 120)
     start_y = 140
     for i, linha in enumerate(regras_t):
-        surf = FONT_PEQ.render(linha, True, PRETO)
+        surf = FONT_REGRAS.render(linha, True, PRETO)
         tela.blit(surf, (60, start_y + i * 30))
     mx, my = pygame.mouse.get_pos()
     botao(tela, btn_voltar, "Voltar", FONT_GO_MENOR, PRETO, CINZA, btn_voltar.collidepoint((mx, my)))
@@ -233,22 +262,54 @@ class Coin:
             self.collected = True; return True
         return False
 
-#logica princpal do jogo (já nao é mais a temporária, apesar do nome)
 def tela_jogo_temporaria():
     global player, player_vel_y, no_chao, vidas, pontos
     global inimigos, inimigos_vel, inimigos_lim, plataformas, coins, camera_x
     global estado, game_finished, game_start_time, victory_time, coins, inimigo, inimigos_lim, inimigos_vel
     global player_facing, player_moving
-    # desenha mapa
+
+    # ---------------------------
+    # Desenha background / mapa
+    # ---------------------------
+    # Se você já desenha o fundo em outro lugar, mantenha apenas o draw_level.
+    if bg_level_img:
+        # desenha o fundo do nível deslocado pela camera_x (se bg_level_img foi carregada)
+        tela.blit(bg_level_img, (-int(camera_x), 0))
+    else:
+        # tiled background fallback (opcional)
+        if bg_level_tile:
+            tile_w, tile_h = bg_level_tile.get_size()
+            if tile_h != ALT:
+                scale = ALT / tile_h
+                new_w = int(tile_w * scale)
+                tile_surf = pygame.transform.smoothscale(bg_level_tile, (new_w, ALT))
+                tile_w = new_w
+            else:
+                tile_surf = bg_level_tile
+            start_x = - (int(camera_x) % tile_w)
+            x = start_x
+            while x < LARG:
+                tela.blit(tile_surf, (x, 0))
+                x += tile_w
+        else:
+            tela.fill((135, 206, 235))
+
+    # desenha os tiles do mapa (terra primeiro, depois grama)
     map_data.draw_level(tela, map_data.LEVEL, (camera_x, 0))
 
-    #centralizacao da cam no player
+    # ---------------------------
+    # Centralização da câmera no jogador (apenas horizontal)
+    # ---------------------------
     camera_x = player.x - (LARG // 2) + (player.width // 2)
-    if camera_x < 0: camera_x = 0
+    if camera_x < 0:
+        camera_x = 0
     max_camera = max(0, MAP_WIDTH - LARG)
-    if camera_x > max_camera: camera_x = max_camera
+    if camera_x > max_camera:
+        camera_x = max_camera
 
-    #movimentaçao
+    # ---------------------------
+    # Movimentação do jogador (input)
+    # ---------------------------
     teclas = pygame.key.get_pressed()
     vel_x = 0
     if teclas[pygame.K_LEFT] or teclas[pygame.K_a]:
@@ -257,7 +318,8 @@ def tela_jogo_temporaria():
         vel_x = velocidade
     if (teclas[pygame.K_UP] or teclas[pygame.K_w] or teclas[pygame.K_SPACE]) and no_chao:
         som_pulo.play()
-        player_vel_y = -pulo; no_chao = False
+        player_vel_y = -pulo
+        no_chao = False
 
     player_moving = (vel_x != 0)
     if vel_x > 0:
@@ -265,23 +327,28 @@ def tela_jogo_temporaria():
     elif vel_x < 0:
         player_facing = "left"
 
-    #mov horizontal e colisões X
+    # mov horizontal e colisões X
     player.x += vel_x
     for p in plataformas:
         if player.colliderect(p):
-            if vel_x > 0: player.right = p.left
-            elif vel_x < 0: player.left = p.right
+            if vel_x > 0:
+                player.right = p.left
+            elif vel_x < 0:
+                player.left = p.right
 
-    #fis do mov vertical e colisoes Y
+    # fis do movimento vertical e colisões Y
     player_vel_y += gravidade
     player.y += player_vel_y
     no_chao = False
     for p in plataformas:
         if player.colliderect(p):
             if player_vel_y > 0:
-                player.bottom = p.top; player_vel_y = 0; no_chao = True
+                player.bottom = p.top
+                player_vel_y = 0
+                no_chao = True
             elif player_vel_y < 0:
-                player.top = p.bottom; player_vel_y = 0
+                player.top = p.bottom
+                player_vel_y = 0
 
     # limites horizontais
     if player.x < 0:
@@ -289,26 +356,37 @@ def tela_jogo_temporaria():
     if player.right > MAP_WIDTH:
         player.right = MAP_WIDTH
 
+    # cair abaixo da tela => game over
     if player.top > ALT:
         game_finished = True
         estado = 'game_over'
         pygame.mixer.music.stop()
         som_go.play()
 
-    #mov dos inimigos e colisoes
+    # ---------------------------
+    # Mov dos inimigos e colisões
+    # ---------------------------
     for idx in range(len(inimigos) - 1, -1, -1):
-        inimigo = inimigos[idx]; vel = inimigos_vel[idx]; left_limit, right_limit = inimigos_lim[idx]
+        inimigo = inimigos[idx]
+        vel = inimigos_vel[idx]
+        left_limit, right_limit = inimigos_lim[idx]
         inimigo.x += vel
         if inimigo.x < left_limit:
-            inimigo.x = left_limit; inimigos_vel[idx] = -inimigos_vel[idx]
+            inimigo.x = left_limit
+            inimigos_vel[idx] = -inimigos_vel[idx]
         elif inimigo.x > right_limit:
-            inimigo.x = right_limit; inimigos_vel[idx] = -inimigos_vel[idx]
+            inimigo.x = right_limit
+            inimigos_vel[idx] = -inimigos_vel[idx]
 
         if player.colliderect(inimigo):
             if player_vel_y > 0 and (player.bottom - inimigo.top) < 20:
-                inimigos.pop(idx); inimigos_vel.pop(idx); inimigos_lim.pop(idx)
+                inimigos.pop(idx)
+                inimigos_vel.pop(idx)
+                inimigos_lim.pop(idx)
                 som_inimigo_morrendo.play()
-                pontos += 100; player_vel_y = -pulo * 0.6; no_chao = False
+                pontos += 100
+                player_vel_y = -pulo * 0.6
+                no_chao = False
             else:
                 som_player_morrendo.play()
                 vidas -= 1
@@ -322,18 +400,20 @@ def tela_jogo_temporaria():
                     pygame.mixer.music.stop()
                     som_go.play()
 
-    #att moedinhas coletadas 
-    for c in coins: c.update()
+    # atualiza moedinhas coletadas
+    for c in coins:
+        c.update()
     for c in coins:
         if not c.collected and c.try_collect(player):
             som_moeda.play()
             pontos += 50
 
-    #desenha moedinhas
-    for c in coins: c.draw(tela, camera_x)
+    # desenha moedinhas
+    for c in coins:
+        c.draw(tela, camera_x)
 
+    # desenha jogador
     pad, pae, cod, coe = player_sprites
-
     sprite = None
     if player_moving:
         if player_facing == "right":
@@ -358,25 +438,33 @@ def tela_jogo_temporaria():
         else:
             pygame.draw.rect(tela, (0, 0, 0), (inimigo.x - camera_x, inimigo.y, inimigo.width, inimigo.height))
 
-
-    #HUD com vidas e pontos
     texto = FONT_MED.render(f"Vidas: {vidas}   Pontos: {pontos}", True, PRETO)
     tela.blit(texto, (20, 20))
+    if game_start_time is None:
+        game_start_time = pygame.time.get_ticks()
 
-    #CHECAGEM DE VITORIA
+    elapsed_ms = pygame.time.get_ticks() - game_start_time
+    minutos = int(elapsed_ms // 60000)
+    segundos = int((elapsed_ms % 60000) // 1000)
+    milesimos = int(elapsed_ms % 1000)
+
+    tempo_txt = f"{minutos:02}:{segundos:02}:{milesimos:03}"
+    texto_tempo = FONT_MED.render(tempo_txt, True, (255, 220, 60))
+    sombra = FONT_MED.render(tempo_txt, True, (0, 0, 0))
+    rect_tempo = texto_tempo.get_rect(center=(LARG // 2, 40))
+    tela.blit(sombra, (rect_tempo.x + 2, rect_tempo.y + 2))
+    tela.blit(texto_tempo, rect_tempo)
+
     if not game_finished and player.right >= MAP_WIDTH - 5:
-        #grava a vitoria
         game_finished = True
         now = pygame.time.get_ticks()
         if game_start_time is None:
             elapsed_ms = 0
         else:
             elapsed_ms = now - game_start_time
-        victory_time = round(elapsed_ms / 1000.0, 3)  #segundos com 3 casas
-        #passa a estado de input de nome
+        victory_time = round(elapsed_ms / 1000.0, 3)
         estado = 'nome'
 
-#VARIAVEIS DO JOGO
 player = pygame.Rect(100, ALT - 150, 30, 45)
 player_sprites = load_player_sprites(player.width, player.height)
 pad, pae, cod, coe = player_sprites
@@ -417,6 +505,7 @@ coins = [
 def reset_game():
     global player, player_vel_y, no_chao, gravidade, velocidade, pulo, vidas, pontos
     global plataformas, game_finished, game_start_time, victory_time, coins, inimigos, inimigos_vel, inimigos_lim
+    global camera_x  # <-- garantir que resetamos a câmera
 
     player.x, player.y = 100, ALT - 150
     player_vel_y = 0
@@ -459,14 +548,20 @@ def reset_game():
         Coin(5000, ALT - 300, sprite_path="assets/coin1.png", size=40),
         Coin(5500, ALT - 170, sprite_path="assets/coin1.png", size=42),
     ]
+
     for i in range(len(inimigos)):
         inimigos[i].x += random.randint(-6, 6)
     inimigos_vel[:] = [random.choice([-1, 1]) * random.uniform(0.8, 2.2) for _ in inimigos]
     inimigos_lim[:] = [(i.x - random.randint(40, 120), i.x + random.randint(40, 120)) for i in inimigos]
-    #marca o início do tempo do nível
+
+    # reset da camera para o início do nível
+    camera_x = 0
+
+    # marca o início do tempo do nível
     game_finished = False
     victory_time = None
     game_start_time = pygame.time.get_ticks()
+
 
 #ranking 
 def load_ranking():
@@ -511,20 +606,28 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit(); sys.exit()
 
-        #teclas globais
+# teclas globais
+        if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 if estado == 'jogando':
-                    # volta para o menu principal
+                    # volta para o menu principal e para a música de gameplay
                     estado = 'menu'
                     try:
                         pygame.mixer.music.stop()
                     except Exception:
                         pass
                 elif estado == 'menu':
-                    # sai do jogo
-                    pygame.quit(); sys.exit()
-            elif estado == 'menu' and event.key == pygame.K_ESCAPE:
-                pygame.quit(); sys.exit()
+                    # se já estiver no menu, ESC sai do jogo
+                    pygame.quit()
+                    sys.exit()
+            if event.key == pygame.K_r and estado == 'jogando':
+                reset_game()
+                try:
+                    pygame.mixer.music.load(som_gp)
+                    pygame.mixer.music.play(-1)
+                except Exception:
+                    pass
+
             if estado == 'nome':
                 if event.key == pygame.K_RETURN:
                     if input_name.strip() == "":
@@ -537,7 +640,8 @@ while True:
                 else:
                     if len(input_name) < 20 and event.unicode.isprintable():
                         input_name += event.unicode
-            #atalho na tela de ranking: R para resetar e voltar ao menu
+
+            # atalhos na tela de ranking e game_over
             if estado == 'ranking' and event.key == pygame.K_r:
                 estado = 'menu'
 
@@ -570,7 +674,7 @@ while True:
                 reset_game()
                 estado = 'jogando'
                 pygame.mixer.music.load(som_gp)
-                pygame.mixer.music.set_volume(0.3)
+                pygame.mixer.music.set_volume(0.7)
                 pygame.mixer.music.play(-1)
             elif btn_to_menu.collidepoint(event.pos):
                 estado = 'menu'

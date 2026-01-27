@@ -10,9 +10,15 @@ TERRA = None
 GRAMA = None
 CEU = (135, 206, 235)
 TILE_COLORS = { 0: CEU, 1: TERRA, 2: GRAMA }
-
+BG_LEVEL_PATH = "fundo_super_sonico_gameplay.jpg"
+BG_LEVEL_TILE_PATH = "nada.png"
+bg_level_tile = None
+bg_level_img = None
+_bg_scaled_strip = None
+_bg_strip_width = None 
 def load_tiles():
-    global TERRA, GRAMA
+    global TERRA, GRAMA, bg_level_img, bg_level_tile
+    global _bg_scaled_strip, _bg_strip_width
     try:
         TERRA = pygame.image.load('terra1.png').convert_alpha()
         GRAMA = pygame.image.load('grama1.png').convert_alpha()
@@ -27,6 +33,37 @@ def load_tiles():
         surf_grama.fill((30, 160, 30))
         TERRA = surf_terra
         GRAMA = surf_grama
+        
+    try:
+        if bg_level_img is not None:
+            target_h = globals().get("BG_TARGET_HEIGHT", 600)
+            orig_w, orig_h = bg_level_img.get_size()
+            scale = target_h / float(orig_h)
+            new_w = max(1, int(orig_w * scale))
+            strip = pygame.transform.scale(bg_level_img, (new_w, target_h)).convert()
+            # cria uma superfície duplicada (strip + strip) para facilitar o wrap contínuo
+            double = pygame.Surface((new_w * 2, target_h)).convert()
+            double.blit(strip, (0, 0))
+            double.blit(strip, (new_w, 0))
+            _bg_scaled_strip = double
+            _bg_strip_width = new_w
+        else:
+            _bg_scaled_strip = None
+            _bg_strip_width = None
+    except Exception as e:
+        _bg_scaled_strip = None
+        _bg_strip_width = None
+    try:
+        img = pygame.image.load(BG_LEVEL_PATH).convert()
+        bg_level_img = img
+    except Exception:
+        bg_level_img = None
+
+    try:
+        tile = pygame.image.load(BG_LEVEL_TILE_PATH).convert()
+        bg_level_tile = tile
+    except Exception:
+        bg_level_tile = None
 
 LEVEL = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -64,30 +101,65 @@ COLS = len(LEVEL[0])
 
 def draw_level(surface, level, camera=(0,0)):
     cam_x, cam_y = camera
+    sw, sh = surface.get_size()
+
+    if bg_level_img:
+        try:
+            iw, ih = bg_level_img.get_size()
+            scale = max(sw / iw, sh / ih)
+            new_w = max(1, int(iw * scale))
+            new_h = max(1, int(ih * scale))
+            scaled = pygame.transform.smoothscale(bg_level_img, (new_w, new_h)).convert()
+            x = (new_w - sw) // 2
+            y = (new_h - sh) // 2
+            crop = pygame.Surface((sw, sh)).convert()
+            crop.blit(scaled, (-x, -y))
+            surface.blit(crop, (0, 0))
+        except Exception:
+            surface.fill(CEU)
+    elif bg_level_tile:
+        try:
+            tile_w, tile_h = bg_level_tile.get_size()
+            if tile_h == 0:
+                surface.fill(CEU)
+            else:
+                scale = sh / tile_h
+                new_w = max(1, int(tile_w * scale))
+                tile_surf = pygame.transform.smoothscale(bg_level_tile, (new_w, sh)).convert()
+                x = 0
+                while x < sw:
+                    surface.blit(tile_surf, (x, 0))
+                    x += new_w
+        except Exception:
+            surface.fill(CEU)
+    else:
+        surface.fill(CEU)
     for row_i, row in enumerate(level):
         for col_i, ch in enumerate(row):
             x = col_i * TILE - cam_x
             y = row_i * TILE - cam_y
             if ch == 1:
                 surface.blit(TERRA, (x, y))
-            elif ch == 2:
+    for row_i, row in enumerate(level):
+        for col_i, ch in enumerate(row):
+            x = col_i * TILE - cam_x
+            y = row_i * TILE - cam_y
+            if ch == 2:  # grama
                 surface.blit(GRAMA, (x, y))
-            elif isinstance(ch, tuple):
-                pygame.draw.rect(surface, ch, (x, y, TILE, TILE))
-            else:
-                pygame.draw.rect(surface, CEU, (x, y, TILE, TILE))
+
 
 def run(screen):
     clock = pygame.time.Clock()
     sw, sh = screen.get_size()
 
-    # câmera (pode mover com setas/WASD)
     cam_x, cam_y = 0, 0
-    cam_speed = 600  # px/s
+    cam_speed = 600
+
+    zoom = 1.8 
 
     running = True
     while running:
-        dt = clock.tick(FPS) / 1000
+        dt = clock.tick(FPS) / 1000.0
 
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
@@ -97,7 +169,6 @@ def run(screen):
                 if e.key == pygame.K_ESCAPE:
                     running = False
 
-        # inputs de câmera
         keys = pygame.key.get_pressed()
         move_x = 0
         move_y = 0
@@ -112,19 +183,24 @@ def run(screen):
 
         cam_x += int(move_x * cam_speed * dt)
         cam_y += int(move_y * cam_speed * dt)
-
-        # limitar câmera (para não 'ver' área negativa ou muito além do mapa)
-        max_x = max(0, COLS * TILE - sw)
-        max_y = max(0, ROWS * TILE - sh)
+        if zoom <= 0:
+            zoom = 1.0
+        render_w = max(1, int(sw / zoom))
+        render_h = max(1, int(sh / zoom))
+        max_x = max(0, COLS * TILE - render_w)
+        max_y = max(0, ROWS * TILE - render_h)
         cam_x = max(0, min(cam_x, max_x))
         cam_y = max(0, min(cam_y, max_y))
-
-        # desenho
-        screen.fill(CEU)
-        draw_level(screen, LEVEL, (cam_x, cam_y))
+        render_surf = pygame.Surface((render_w, render_h)).convert()
+        draw_level(render_surf, LEVEL, (cam_x, cam_y))
+        zoomed = pygame.transform.smoothscale(render_surf, (sw, sh))
+        screen.fill((0, 0, 0))
+        screen.blit(zoomed, (0, 0))
         pygame.display.flip()
 
     return
+
+
         
 def get_collision_rects(tile_size=TILE, collide_tiles=(1, 2)):
     rects = []
